@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0d1117;
+  color: #c9d1d9;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom developer-grade scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #21262d;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #30363d;
+}
+
+/* Monaco cursor decorations */
+.remote-caret {
+  position: absolute;
+  border-left: 2px solid;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.remote-caret-label {
+  position: absolute;
+  top: -18px;
+  left: -2px;
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: #0d1117;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 20;
+}
+
+.remote-selection {
+  position: absolute;
+  opacity: 0.25;
+  pointer-events: none;
+}
