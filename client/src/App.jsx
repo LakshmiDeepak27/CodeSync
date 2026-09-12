@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import { LandingPage } from './pages/LandingPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { SignupPage } from './pages/SignupPage.jsx';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
+import { VerifyEmailPage } from './pages/VerifyEmailPage.jsx';
 import { DashboardPage } from './pages/DashboardPage.jsx';
+import { ProfilePage } from './pages/ProfilePage.jsx';
 import { RoomPage } from './pages/RoomPage.jsx';
 import { CreateRoomModal } from './components/CreateRoomModal.jsx';
 import { JoinRoomModal } from './components/JoinRoomModal.jsx';
 import { roomService } from './services/room.js';
+
+const ProtectedRoomRoute = ({ user }) => {
+  const { roomId } = useParams();
+  if (!user) {
+    return <Navigate to={`/login?redirect=${encodeURIComponent(`/room/${roomId}`)}`} replace />;
+  }
+  return <RoomPage />;
+};
 
 export const App = () => {
   const { user, loading } = useAuth();
@@ -30,14 +41,15 @@ export const App = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-dark-950 text-dark-400 font-mono text-xs">
-        Initializing CodeSync...
+      <div className="h-[100dvh] w-screen flex flex-col gap-3 items-center justify-center bg-dark-950 text-dark-400 font-mono text-xs">
+        <span className="w-5 h-5 rounded-full border-2 border-dark-700 border-t-brand-400 animate-spin" />
+        Initializing workspace…
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 text-dark-200">
+    <div className="app-shell bg-dark-900 text-dark-200">
       <Routes>
         {/* Landing Page */}
         <Route
@@ -62,6 +74,8 @@ export const App = () => {
           path="/signup"
           element={user ? <Navigate to="/dashboard" replace /> : <SignupPage />}
         />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
 
         {/* Dashboard (Protected) */}
         <Route
@@ -83,16 +97,13 @@ export const App = () => {
             )
           }
         />
+        <Route path="/profile" element={user ? <><Navbar onOpenCreateRoom={() => setIsCreateModalOpen(true)} onOpenJoinRoom={() => setIsJoinModalOpen(true)} /><ProfilePage /></> : <Navigate to="/login" replace />} />
 
         {/* Collaborative Room (IDE) */}
         <Route
           path="/room/:roomId"
           element={
-            user ? (
-              <RoomPage />
-            ) : (
-              <Navigate to={`/login?redirect=/room`} replace />
-            )
+            <ProtectedRoomRoute user={user} />
           }
         />
 

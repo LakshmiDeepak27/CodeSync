@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
-import { X, Sparkles, Lock, Globe, Code2 } from 'lucide-react';
-import { SUPPORTED_LANGUAGES } from '@codesync/shared/constants';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, Code2, Globe, Loader2, Lock, X } from 'lucide-react';
+
+const LANGUAGES = [
+  { id: 'cpp', label: 'C++', runtime: 'GCC 9.2.0' },
+  { id: 'py', label: 'Python', runtime: 'Python 3.8.1' },
+  { id: 'javascript', label: 'JavaScript', runtime: 'Node.js 18' },
+  { id: 'c', label: 'C', runtime: 'GCC 9.2.0' }
+];
 
 export const CreateRoomModal = ({ isOpen, onClose, onCreate }) => {
   const [name, setName] = useState('');
@@ -10,134 +16,85 @@ export const CreateRoomModal = ({ isOpen, onClose, onCreate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const handleEscape = (event) => event.key === 'Escape' && onClose();
+    if (isOpen) {
+      window.addEventListener('keydown', handleEscape);
+      setError('');
+    }
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const selectedLanguage = LANGUAGES.find((item) => item.id === language);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!name.trim()) return;
 
     try {
       setLoading(true);
       setError('');
-      await onCreate({
-        name: name.trim(),
-        description: description.trim(),
-        language,
-        visibility
-      });
+      await onCreate({ name: name.trim(), description: description.trim(), language, visibility });
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to create room');
+      setError(err.message || 'Unable to create the room. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="w-full max-w-md bg-dark-900 border border-dark-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
-        {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-dark-750 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 rounded-md bg-brand-600/20 text-brand-400 flex items-center justify-center">
-              <Code2 className="w-4 h-4" />
+    <div onMouseDown={(event) => event.target === event.currentTarget && onClose()} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 font-sans">
+      <div role="dialog" aria-modal="true" aria-labelledby="create-room-title" className="w-full max-w-[480px] border border-cyan-100/15 bg-[#061923] text-slate-200 shadow-2xl">
+        <header className="flex items-center justify-between border-b border-cyan-100/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center border border-cyan-300/25 bg-[#082333] text-[#84dfff]"><Code2 className="h-4 w-4" /></span>
+            <div>
+              <h2 id="create-room-title" className="text-base font-semibold text-white">New room</h2>
+              <p className="mt-0.5 text-xs text-slate-400">Create a shared coding workspace.</p>
             </div>
-            <h2 className="text-base font-semibold text-dark-100">Create Coding Room</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-dark-800 text-dark-400 hover:text-dark-100 rounded-md transition"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+          <button type="button" onClick={onClose} aria-label="Close create room dialog" className="p-2 text-slate-400 transition hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
+        </header>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {error && (
-            <div className="p-3 bg-accent-rose/10 border border-accent-rose/20 rounded-md text-xs text-accent-rose">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-5 p-5">
+          {error && <p role="alert" className="border border-rose-800/70 bg-rose-950/35 px-3 py-2.5 text-xs text-rose-300">{error}</p>}
 
           <div>
-            <label className="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
-              Room Name <span className="text-brand-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Algorithms Lab, Project Alpha"
-              className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-dark-100 placeholder-dark-500 focus:outline-none focus:border-brand-500"
-            />
+            <label htmlFor="room-name" className="mb-1.5 block text-xs font-medium text-slate-300">Room name <span className="text-[#84dfff]">*</span></label>
+            <input id="room-name" type="text" required autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Algorithms practice" className="w-full border border-cyan-100/15 bg-[#04151f] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 transition focus:border-[#84dfff] focus:outline-none" />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
-              Description (Optional)
-            </label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the room's purpose"
-              className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-dark-100 placeholder-dark-500 focus:outline-none focus:border-brand-500"
-            />
+            <label htmlFor="room-description" className="mb-1.5 block text-xs font-medium text-slate-300">Description <span className="font-normal text-slate-500">optional</span></label>
+            <input id="room-description" type="text" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What are you working on?" className="w-full border border-cyan-100/15 bg-[#04151f] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 transition focus:border-[#84dfff] focus:outline-none" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
-                Primary Language
-              </label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-dark-100 focus:outline-none focus:border-brand-500 cursor-pointer"
-              >
-                {Object.values(SUPPORTED_LANGUAGES).map((lang) => (
-                  <option key={lang.id} value={lang.id}>
-                    {lang.name}
-                  </option>
-                ))}
+              <label htmlFor="room-language" className="mb-1.5 block text-xs font-medium text-slate-300">Language</label>
+              <select id="room-language" value={language} onChange={(event) => setLanguage(event.target.value)} className="w-full border border-cyan-100/15 bg-[#04151f] px-3 py-2.5 text-sm text-slate-100 focus:border-[#84dfff] focus:outline-none">
+                {LANGUAGES.map((item) => <option key={item.id} value={item.id}>{item.label} — {item.runtime}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
-                Visibility
-              </label>
-              <select
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value)}
-                className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-sm text-dark-100 focus:outline-none focus:border-brand-500 cursor-pointer"
-              >
-                <option value="PUBLIC">Public (Anyone with link)</option>
-                <option value="PRIVATE">Private (Invite only)</option>
-              </select>
+              <span className="mb-1.5 block text-xs font-medium text-slate-300">Access</span>
+              <div className="flex border border-cyan-100/15 bg-[#04151f]">
+                <button type="button" onClick={() => setVisibility('PUBLIC')} aria-pressed={visibility === 'PUBLIC'} className={`flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-xs font-medium transition ${visibility === 'PUBLIC' ? 'bg-[#0c3041] text-[#84dfff]' : 'text-slate-400 hover:text-slate-200'}`}><Globe className="h-3.5 w-3.5" />Public</button>
+                <button type="button" onClick={() => setVisibility('PRIVATE')} aria-pressed={visibility === 'PRIVATE'} className={`flex flex-1 items-center justify-center gap-1.5 border-l border-cyan-100/15 px-2 py-2.5 text-xs font-medium transition ${visibility === 'PRIVATE' ? 'bg-[#0c3041] text-[#84dfff]' : 'text-slate-400 hover:text-slate-200'}`}><Lock className="h-3.5 w-3.5" />Private</button>
+              </div>
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="pt-2 flex items-center justify-end space-x-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-2 text-xs font-semibold text-dark-400 hover:text-dark-200 hover:bg-dark-800 rounded-lg transition"
-            >
-              Cancel
+          <p className="border-l-2 border-cyan-300/45 pl-3 text-xs leading-relaxed text-slate-400">{visibility === 'PUBLIC' ? 'Anyone with the room link or code can join.' : 'Only people you invite can join this room.'} Runs with {selectedLanguage?.runtime}.</p>
+
+          <footer className="flex items-center justify-end gap-2 border-t border-cyan-100/10 pt-4">
+            <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium text-slate-400 transition hover:text-white">Cancel</button>
+            <button type="submit" disabled={loading || !name.trim()} className="inline-flex items-center gap-2 bg-[#82dcff] px-4 py-2.5 text-sm font-semibold text-[#062033] transition hover:bg-[#aee7fb] disabled:cursor-not-allowed disabled:opacity-50">
+              {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Creating…</> : <>Create room <ArrowRight className="h-4 w-4" /></>}
             </button>
-            <button
-              type="submit"
-              disabled={loading || !name.trim()}
-              className="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 disabled:opacity-50 rounded-lg shadow-sm transition"
-            >
-              {loading ? 'Creating...' : 'Create Room'}
-            </button>
-          </div>
+          </footer>
         </form>
       </div>
     </div>

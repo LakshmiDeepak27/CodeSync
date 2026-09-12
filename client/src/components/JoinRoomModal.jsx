@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ArrowRight, Hash } from 'lucide-react';
 
 export const JoinRoomModal = ({ isOpen, onClose, onJoin }) => {
   const [roomCode, setRoomCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const handleEscape = (event) => event.key === 'Escape' && onClose();
+    if (isOpen) window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -26,18 +32,19 @@ export const JoinRoomModal = ({ isOpen, onClose, onJoin }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="w-full max-w-sm bg-dark-900 border border-dark-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
-        <div className="px-5 py-4 border-b border-dark-750 flex items-center justify-between">
+    <div onMouseDown={(event) => event.target === event.currentTarget && onClose()} className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <div role="dialog" aria-modal="true" aria-labelledby="join-room-title" className="w-full max-w-sm bg-[#061923] border border-cyan-100/20 rounded-xl shadow-2xl">
+        <div className="px-5 py-4 border-b border-cyan-100/10 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 rounded-md bg-accent-cyan/20 text-accent-cyan flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-[#0b2d3c] text-[#84dfff] flex items-center justify-center">
               <Hash className="w-4 h-4" />
             </div>
-            <h2 className="text-base font-semibold text-dark-100">Join Coding Room</h2>
+            <h2 id="join-room-title" className="text-base font-semibold text-dark-100">Join coding room</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-dark-800 text-dark-400 hover:text-dark-100 rounded-md transition"
+            aria-label="Close join room dialog"
+            className="p-1.5 hover:bg-dark-800 text-dark-400 hover:text-dark-100 rounded-md transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -61,7 +68,7 @@ export const JoinRoomModal = ({ isOpen, onClose, onJoin }) => {
               value={roomCode}
               onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
               placeholder="e.g. 7A8B9C1D"
-              className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-center text-base font-mono tracking-widest text-dark-100 placeholder-dark-500 focus:outline-none focus:border-brand-500 uppercase"
+              className="w-full px-3 py-2 bg-dark-800 border border-dark-700 rounded text-center text-base font-mono tracking-widest text-dark-100 placeholder-dark-500 focus:outline-none focus:border-brand-500 uppercase"
             />
           </div>
 
@@ -76,7 +83,7 @@ export const JoinRoomModal = ({ isOpen, onClose, onJoin }) => {
             <button
               type="submit"
               disabled={loading || !roomCode.trim()}
-              className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 disabled:opacity-50 rounded-lg shadow-sm transition"
+              className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold text-[#062033] bg-[#82dcff] hover:bg-[#b2edff] disabled:opacity-50 rounded-lg transition"
             >
               <span>{loading ? 'Joining...' : 'Join Room'}</span>
               <ArrowRight className="w-3.5 h-3.5" />

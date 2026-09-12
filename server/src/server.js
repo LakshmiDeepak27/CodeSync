@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Server as SocketIOServer } from 'socket.io';
+import { YSocketIO } from 'y-socket.io/dist/server';
 import { ENV } from './config/env.js';
 import apiRoutes from './routes/index.js';
 import { errorHandler } from './middleware/error.middleware.js';
@@ -18,8 +19,17 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
+const allowedOrigins = [ENV.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:3000'];
+const isOriginAllowed = (origin, callback) => {
+  if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    callback(null, true);
+  } else {
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  }
+};
+
 app.use(cors({
-  origin: [ENV.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: isOriginAllowed,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 }));
@@ -42,12 +52,15 @@ app.use(errorHandler);
 // Setup Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    origin: [ENV.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: isOriginAllowed,
     credentials: true
   },
   pingTimeout: 20000,
   pingInterval: 10000
 });
+
+const ySocketIO = new YSocketIO(io);
+ySocketIO.initialize();
 
 setupSocketIO(io);
 
@@ -69,3 +82,5 @@ const shutdown = async () => {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+// CodeSync server initialized

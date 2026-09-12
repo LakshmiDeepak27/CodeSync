@@ -11,7 +11,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@codesync/shared': path.resolve(__dirname, '../shared')
+      '@codesync/shared': path.resolve(__dirname, '../shared'),
+      'monaco-editor/esm/vs/editor/editor.api.js': path.resolve(__dirname, '../node_modules/monaco-editor/esm/vs/editor/editor.api.js'),
+      'monaco-editor': path.resolve(__dirname, '../node_modules/monaco-editor')
     }
   },
   css: {

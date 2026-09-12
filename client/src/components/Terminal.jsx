@@ -106,16 +106,16 @@ export const Terminal = ({
   );
 
   return (
-    <div className="h-full flex flex-col bg-dark-950 border-t border-dark-700 text-xs font-mono">
+    <div className="h-full flex flex-col bg-[#0b0d10] border-t border-dark-700 text-xs font-mono">
       {/* Terminal Top Bar */}
-      <div className="h-9 px-3 border-b border-dark-750 flex items-center justify-between bg-dark-900 select-none">
+      <div className="h-9 px-2 sm:px-3 border-b border-dark-750 flex items-center justify-between bg-dark-900 select-none overflow-hidden">
         {/* Left: Tabs */}
         <div className="flex items-center space-x-1">
           <button
             onClick={() => setActiveTab('OUTPUT')}
-            className={`px-3 py-1 rounded text-xs font-semibold tracking-wider transition ${
+            className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold tracking-wider transition ${
               activeTab === 'OUTPUT'
-                ? 'bg-dark-800 text-dark-100 border border-dark-650'
+                ? 'bg-dark-800 text-dark-100 border-b-2 border-brand-400'
                 : 'text-dark-400 hover:text-dark-200'
             }`}
           >
@@ -124,9 +124,9 @@ export const Terminal = ({
 
           <button
             onClick={() => setActiveTab('INPUT')}
-            className={`px-3 py-1 rounded text-xs font-semibold tracking-wider transition ${
+            className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold tracking-wider transition ${
               activeTab === 'INPUT'
-                ? 'bg-dark-800 text-dark-100 border border-dark-650'
+                ? 'bg-dark-800 text-dark-100 border-b-2 border-brand-400'
                 : 'text-dark-400 hover:text-dark-200'
             }`}
           >
@@ -135,9 +135,9 @@ export const Terminal = ({
 
           <button
             onClick={() => setActiveTab('ERRORS')}
-            className={`px-3 py-1 rounded text-xs font-semibold tracking-wider flex items-center gap-1.5 transition ${
+            className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold tracking-wider flex items-center gap-1.5 transition ${
               activeTab === 'ERRORS'
-                ? 'bg-dark-800 text-dark-100 border border-dark-650'
+                ? 'bg-dark-800 text-dark-100 border-b-2 border-brand-400'
                 : 'text-dark-400 hover:text-dark-200'
             }`}
           >

@@ -4,6 +4,7 @@ import Editor from '@monaco-editor/react';
 export const MonacoEditor = ({
   file,
   onContentChange,
+  onMount,
   readOnly = false,
   collaboratorCursors = [],
   onCursorChange,
@@ -18,6 +19,9 @@ export const MonacoEditor = ({
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    if (onMount) {
+      onMount(editor, monaco);
+    }
 
     // Define custom dark theme
     monaco.editor.defineTheme('codesync-dark', {

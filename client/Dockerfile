@@ -6,7 +6,7 @@ COPY package*.json ./
 COPY shared/ ./shared/
 COPY client/ ./client/
 
-RUN npm install --workspace=codesync-client
+RUN npm install --workspace=codesync-client --include=optional
 RUN npm run build --workspace=codesync-client
 
 FROM nginx:alpine

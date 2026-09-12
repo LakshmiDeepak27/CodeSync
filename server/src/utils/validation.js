@@ -2,11 +2,16 @@ import { z } from 'zod';
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  username: z.string().min(3, 'Username must be at least 3 characters').max(30).regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(30).regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores').optional(),
   email: z.string().email('Please provide a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters').max(100),
-  confirmPassword: z.string().min(6)
-}).refine((data) => data.password === data.confirmPassword, {
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(100)
+    .regex(/[a-z]/, 'Password must include a lowercase letter')
+    .regex(/[A-Z]/, 'Password must include an uppercase letter')
+    .regex(/[0-9]/, 'Password must include a number'),
+  confirmPassword: z.string().min(8).optional()
+}).refine((data) => !data.confirmPassword || data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword']
 });
@@ -19,7 +24,7 @@ export const loginSchema = z.object({
 export const createRoomSchema = z.object({
   name: z.string().min(2, 'Room name must be at least 2 characters').max(100),
   description: z.string().max(500).optional(),
-  language: z.enum(['cpp', 'c', 'python']).default('cpp'),
+  language: z.enum(['cpp', 'c', 'python', 'javascript']).default('cpp'),
   visibility: z.enum(['PUBLIC', 'PRIVATE']).default('PUBLIC')
 });
 
@@ -43,11 +48,16 @@ export const renameFileSchema = z.object({
 });
 
 export const executionSchema = z.object({
-  roomId: z.string().uuid('Valid room ID required'),
-  fileId: z.string().uuid().optional(),
-  language: z.string().default('cpp'),
-  code: z.string().min(1, 'Source code cannot be empty').max(64000, 'Source code exceeds maximum size (64KB)'),
-  stdin: z.string().max(16000, 'Standard input exceeds maximum size (16KB)').optional()
+  roomId: z.string().optional(),
+  fileId: z.string().optional(),
+  language: z.string().optional(),
+  languageId: z.number().optional(),
+  sourceCode: z.string().optional(),
+  code: z.string().optional(),
+  stdin: z.string().max(16000).optional()
+}).refine(data => !!(data.code || data.sourceCode), {
+  message: 'Source code cannot be empty',
+  path: ['code']
 });
 
 export const chatSchema = z.object({

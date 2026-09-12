@@ -43,7 +43,41 @@ export class FileService {
     });
   }
 
-  static async updateContent(fileId, content) {
+  static async checkUserFilePermission(fileId, userId) {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) {
+      const error = new Error('File not found');
+      error.status = 404;
+      throw error;
+    }
+
+    const membership = await prisma.roomMember.findUnique({
+      where: {
+        roomId_userId: {
+          roomId: file.roomId,
+          userId
+        }
+      }
+    });
+
+    const room = await prisma.room.findUnique({ where: { id: file.roomId } });
+    const isOwner = room && room.ownerId === userId;
+    const role = isOwner ? 'OWNER' : membership?.role;
+
+    if (!role || (role !== 'OWNER' && role !== 'EDITOR')) {
+      const error = new Error('Permission denied. You must be an owner or editor to modify files.');
+      error.status = 403;
+      throw error;
+    }
+
+    return file;
+  }
+
+  static async updateContent(fileId, content, userId) {
+    if (userId) {
+      await this.checkUserFilePermission(fileId, userId);
+    }
+
     return prisma.file.update({
       where: { id: fileId },
       data: {
@@ -53,8 +87,11 @@ export class FileService {
     });
   }
 
-  static async renameFile(fileId, newName) {
-    const file = await prisma.file.findUnique({ where: { id: fileId } });
+  static async renameFile(fileId, newName, userId) {
+    const file = userId
+      ? await this.checkUserFilePermission(fileId, userId)
+      : await prisma.file.findUnique({ where: { id: fileId } });
+
     if (!file) {
       const error = new Error('File not found');
       error.status = 404;
@@ -74,8 +111,19 @@ export class FileService {
     });
   }
 
-  static async deleteFile(fileId, roomId) {
-    const totalFiles = await prisma.file.count({ where: { roomId } });
+  static async deleteFile(fileId, roomId, userId) {
+    const file = userId
+      ? await this.checkUserFilePermission(fileId, userId)
+      : await prisma.file.findUnique({ where: { id: fileId } });
+
+    if (!file) {
+      const error = new Error('File not found');
+      error.status = 404;
+      throw error;
+    }
+
+    const targetRoomId = roomId || file.roomId;
+    const totalFiles = await prisma.file.count({ where: { roomId: targetRoomId } });
     if (totalFiles <= 1) {
       const error = new Error('Cannot delete the only file in the room.');
       error.status = 400;

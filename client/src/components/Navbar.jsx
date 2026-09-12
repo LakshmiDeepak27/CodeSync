@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { Code2, Plus, LogOut, LayoutDashboard, User, ChevronDown } from 'lucide-react';
+import { Plus, LogOut, User, ChevronDown } from 'lucide-react';
+import { BrandMark } from './BrandMark.jsx';
 
 export const Navbar = ({ onOpenCreateRoom, onOpenJoinRoom }) => {
   const { user, logout } = useAuth();
@@ -14,16 +15,13 @@ export const Navbar = ({ onOpenCreateRoom, onOpenJoinRoom }) => {
   };
 
   return (
-    <header className="h-14 border-b border-dark-700 bg-dark-900/90 backdrop-blur px-4 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-16 border-b border-cyan-100/10 bg-[#04131d]/95 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 backdrop-blur">
       {/* Brand */}
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-4 sm:space-x-6 min-w-0">
         <Link to={user ? '/dashboard' : '/'} className="flex items-center space-x-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
-            <Code2 className="w-5 h-5" />
-          </div>
-          <span className="font-semibold text-lg text-dark-100 tracking-tight flex items-center gap-1.5">
+          <BrandMark size={32} className="transition-transform group-hover:scale-105" />
+          <span className="font-semibold text-lg text-white tracking-tight flex items-center gap-1.5">
             CodeSync
-            <span className="w-2 h-2 rounded-full bg-accent-emerald animate-pulse"></span>
           </span>
         </Link>
 
@@ -31,7 +29,7 @@ export const Navbar = ({ onOpenCreateRoom, onOpenJoinRoom }) => {
           <nav className="hidden md:flex items-center space-x-1">
             <Link
               to="/dashboard"
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-dark-300 hover:text-dark-100 hover:bg-dark-800 transition"
+              className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-cyan-100/5 transition"
             >
               Dashboard
             </Link>
@@ -40,13 +38,13 @@ export const Navbar = ({ onOpenCreateRoom, onOpenJoinRoom }) => {
       </div>
 
       {/* Actions / Auth */}
-      <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
         {user ? (
           <>
             {onOpenJoinRoom && (
               <button
                 onClick={onOpenJoinRoom}
-                className="px-3 py-1.5 text-sm font-medium text-dark-300 hover:text-dark-100 hover:bg-dark-800 border border-dark-700 rounded-md transition"
+                className="hidden sm:block px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-cyan-100/5 border border-cyan-100/15 rounded-md transition"
               >
                 Join Room
               </button>
@@ -55,10 +53,10 @@ export const Navbar = ({ onOpenCreateRoom, onOpenJoinRoom }) => {
             {onOpenCreateRoom && (
               <button
                 onClick={onOpenCreateRoom}
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-500 rounded-md shadow transition"
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-semibold text-[#062033] bg-[#82dcff] hover:bg-[#b2edff] rounded-md transition"
               >
                 <Plus className="w-4 h-4" />
-                <span>New Room</span>
+                <span className="hidden sm:inline">New Room</span>
               </button>
             )}
 
@@ -73,7 +71,7 @@ export const Navbar = ({ onOpenCreateRoom, onOpenJoinRoom }) => {
                   alt={user.name}
                   className="w-7 h-7 rounded-full bg-dark-700 border border-dark-600"
                 />
-                <span className="text-sm font-medium hidden sm:inline-block max-w-[120px] truncate">
+                <span className="text-sm font-medium hidden md:inline-block max-w-[120px] truncate">
                   {user.name}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-dark-400" />
@@ -91,12 +89,12 @@ export const Navbar = ({ onOpenCreateRoom, onOpenJoinRoom }) => {
                       <p className="text-xs text-dark-400 truncate">@{user.username}</p>
                     </div>
                     <Link
-                      to="/dashboard"
+                      to="/profile"
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center space-x-2 px-3 py-2 text-sm text-dark-300 hover:text-dark-100 hover:bg-dark-800 transition"
                     >
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span>Dashboard</span>
+                      <User className="w-4 h-4" />
+                      <span>Profile</span>
                     </Link>
                     <button
                       onClick={handleLogout}

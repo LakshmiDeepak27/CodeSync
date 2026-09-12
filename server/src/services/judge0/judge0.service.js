@@ -8,7 +8,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class Judge0Service {
   /**
-   * Submit code to Judge0 and wait or poll for completion
+   * Submit code to Judge0 with base64 encoding to prevent UTF-8 serialization issues
    * @param {Object} params
    * @param {string} params.sourceCode
    * @param {number} params.languageId
@@ -17,35 +17,38 @@ export class Judge0Service {
    */
   static async executeCode({ sourceCode, languageId, stdin = '' }) {
     try {
-      // Step 1: Create submission with wait=true for fast response
-      const postResponse = await judge0Client.post('/submissions?base64_encoded=false&wait=true', {
-        source_code: sourceCode,
+      // Step 1: Encode source code and stdin in Base64 for guaranteed binary-safe transmission
+      const b64Source = Buffer.from(sourceCode || '', 'utf-8').toString('base64');
+      const b64Stdin = Buffer.from(stdin || '', 'utf-8').toString('base64');
+
+      const postResponse = await judge0Client.post('/submissions?base64_encoded=true&wait=true', {
+        source_code: b64Source,
         language_id: languageId,
-        stdin: stdin || ''
+        stdin: b64Stdin
       });
 
       const submission = postResponse.data;
 
-      // If already finished (status not in queue / processing), normalize immediately
+      // If already finished, normalize immediately
       if (
         submission.status &&
         submission.status.id !== JUDGE0_STATUS_IDS.IN_QUEUE &&
         submission.status.id !== JUDGE0_STATUS_IDS.PROCESSING
       ) {
-        return normalizeJudge0Response(submission);
+        return normalizeJudge0Response(submission, true);
       }
 
-      // Step 2: If still queued/processing, poll token until finished or timeout
+      // Step 2: Poll token if still in queue
       const token = submission.token;
       if (!token) {
-        return normalizeJudge0Response(submission);
+        return normalizeJudge0Response(submission, true);
       }
 
       const startTime = Date.now();
       while (Date.now() - startTime < ENV.JUDGE0_REQUEST_TIMEOUT) {
         await sleep(ENV.JUDGE0_POLL_INTERVAL);
 
-        const pollResponse = await judge0Client.get(`/submissions/${token}?base64_encoded=false`);
+        const pollResponse = await judge0Client.get(`/submissions/${token}?base64_encoded=true`);
         const polled = pollResponse.data;
 
         if (
@@ -53,11 +56,11 @@ export class Judge0Service {
           polled.status.id !== JUDGE0_STATUS_IDS.IN_QUEUE &&
           polled.status.id !== JUDGE0_STATUS_IDS.PROCESSING
         ) {
-          return normalizeJudge0Response(polled);
+          return normalizeJudge0Response(polled, true);
         }
       }
 
-      // If we reach here, timeout waiting for Judge0
+      // Timeout waiting for Judge0
       return {
         status: EXECUTION_STATUS.TIME_LIMIT,
         stdout: '',
@@ -70,17 +73,18 @@ export class Judge0Service {
         rawStatusDescription: 'Time Limit Exceeded'
       };
     } catch (error) {
-      console.error('[Judge0Service Error]:', error?.message || error);
+      console.error('[Judge0Service Error]:', error?.response?.data || error?.message || error);
+      const detailMsg = error?.response?.data?.error || error?.message || 'Code execution engine error';
       return {
         status: EXECUTION_STATUS.JUDGE_ERROR,
         stdout: '',
-        stderr: '',
+        stderr: detailMsg,
         compileError: '',
-        runtimeError: 'Code execution is temporarily unavailable. Please try again.',
+        runtimeError: detailMsg,
         exitCode: 1,
         executionTime: 0,
         memoryUsed: 0,
-        rawStatusDescription: 'Judge0 Unavailable'
+        rawStatusDescription: 'Judge0 Error'
       };
     }
   }

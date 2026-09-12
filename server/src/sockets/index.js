@@ -210,8 +210,16 @@ export function setupSocketIO(io) {
       if (roomId) socket.to(`room:${roomId}`).emit(SOCKET_EVENTS.FILE_RENAMED, file);
     });
 
-    socket.on(SOCKET_EVENTS.FILE_DELETED, ({ roomId, fileId }) => {
-      if (roomId) socket.to(`room:${roomId}`).emit(SOCKET_EVENTS.FILE_DELETED, { fileId });
+    // Friend Request Broadcast
+    socket.on('friend:request:send', ({ senderUsername, targetUsername, roomId }) => {
+      if (roomId) {
+        socket.to(`room:${roomId}`).emit('friend:request:received', {
+          senderUsername: senderUsername || user.username,
+          targetUsername,
+          roomId,
+          timestamp: new Date().toISOString()
+        });
+      }
     });
 
     // Handle Leave & Disconnect

@@ -62,6 +62,15 @@ int main() {
     defaultFileName: 'main.py',
     defaultCode: `print("Hello, CodeSync!")
 `
+  },
+  javascript: {
+    id: 'javascript',
+    name: 'JavaScript (Node.js 12.14.0)',
+    judge0Id: 63,
+    extension: '.js',
+    monacoLanguage: 'javascript',
+    defaultFileName: 'index.js',
+    defaultCode: `console.log("Hello, CodeSync!");\n`
   }
 };
 

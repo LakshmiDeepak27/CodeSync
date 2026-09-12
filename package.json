@@ -15,12 +15,15 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "lint:client": "npm run lint --workspace=codesync-client",
-    "lint": "npm run lint --workspace=codesync-client"
+    "lint": "npm run lint --workspace=codesync-client",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "prisma": "^5.19.1",
-    "typescript": "^5.5.4"
+    "prisma": "^5.22.0"
   },
   "dependencies": {
     "@monaco-editor/loader": "^1.7.0",

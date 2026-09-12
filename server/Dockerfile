@@ -17,4 +17,4 @@ WORKDIR /app/server
 
 EXPOSE 5000
 
-CMD ["node", "src/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=/app/prisma/schema.prisma && node src/server.js"]

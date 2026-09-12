@@ -11,6 +11,10 @@ router.post('/register', authRateLimiter, validate(registerSchema), AuthControll
 router.post('/login', authRateLimiter, validate(loginSchema), AuthController.login);
 router.post('/logout', AuthController.logout);
 router.get('/me', requireAuth, AuthController.me);
+router.put('/profile', requireAuth, AuthController.updateProfile);
+router.post('/forgot-password', AuthController.requestPasswordReset);
+router.post('/reset-password', AuthController.resetPassword);
+router.post('/verify-email', AuthController.verifyEmail);
 
 // Google OAuth routes
 router.get('/google', AuthController.googleAuth);

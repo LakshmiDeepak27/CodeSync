@@ -1,263 +1,56 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
-import {
-  Code2,
-  Users2,
-  Cpu,
-  Terminal as TerminalIcon,
-  MessageSquare,
-  ArrowRight,
-  Sparkles,
-  Zap,
-  Lock,
-  Layers,
-  CheckCircle2
-} from 'lucide-react';
+import { BrandMark } from '../components/BrandMark.jsx';
+import { ArrowRight, ChevronDown, Code2, FolderOpen, GitBranch, Play, Search, Settings, Users, X, Braces, MessageSquare, Terminal, Share2, BookOpen, ShieldCheck, Zap } from 'lucide-react';
+
+const codeLines = [
+  ['import ', '{ useEffect, useRef, useState } ', 'from ', "'react';"], ['import ', '{ useSocket } ', 'from ', "'../hooks/useSocket';"], ['import ', 'MessageList ', 'from ', "'./MessageList';"], ['', '', '', ''], ['export default function ', 'ChatWindow', '() {', ''], ['  const ', '[message, setMessage] ', '= useState', "('');"], ['  const ', 'socket ', '= useSocket', '();'], ['', '', '', ''], ['  useEffect', '(() => {', '', ''], ['    endRef.current?.scrollIntoView', "({ behavior: 'smooth' });", '', ''], ['  }, ', '[messages]', ');', ''], ['', '', '', ''], ['  return ', '(', '', ''], ['    <div className=', '"workspace"', '>', ''], ['      <MessageList ', 'messages={messages}', ' />', ''], ['    </div>', '', '', ''], ['  );', '', '', ''], ['}', '', '', '']
+];
+
+// Paste the public YouTube embed URL here when the walkthrough is ready.
+const PROJECT_WALKTHROUGH_URL = '';
+
+const Avatar = ({ initials, color }) => <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#07131b] text-[9px] font-bold text-white ${color}`}>{initials}</span>;
 
 export const LandingPage = ({ onOpenCreateRoom }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const handleHeroCTA = () => {
-    if (user) {
-      if (onOpenCreateRoom) onOpenCreateRoom();
-      else navigate('/dashboard');
-    } else {
-      navigate('/signup');
-    }
+    if (user) { if (onOpenCreateRoom) onOpenCreateRoom(); else navigate('/dashboard'); return; }
+    navigate('/signup');
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-dark-900 text-dark-200">
-      {/* Navbar */}
-      <nav className="h-16 border-b border-dark-750/80 px-6 flex items-center justify-between sticky top-0 bg-dark-900/80 backdrop-blur z-30">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-            <Code2 className="w-5 h-5" />
+    <div className="min-h-screen overflow-hidden bg-[#020d13] text-[#eaf6fb]">
+      <section className="relative isolate min-h-[840px] overflow-hidden border-b border-cyan-100/10 bg-[#031119]">
+        <div className="absolute inset-0 bg-[url('/images/codesync-hero-environment.png')] bg-cover bg-center opacity-70" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_64%_25%,rgba(81,186,227,.16),transparent_28%),linear-gradient(90deg,rgba(1,10,15,.96)_0%,rgba(2,15,22,.88)_33%,rgba(2,13,19,.28)_72%,rgba(2,10,15,.62)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#020d13] via-[#020d13]/75 to-transparent" />
+        <nav aria-label="Main navigation" className="relative z-10 mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 lg:px-12">
+          <Link to="/" className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-white"><BrandMark size={32} className="shadow-[0_0_14px_rgba(34,211,238,.35)]" />CodeSync</Link>
+          <div className="hidden items-center gap-10 text-sm text-slate-200 lg:flex"><a href="#product" className="transition hover:text-[#79dcff]">Product</a><a href="#solutions" className="transition hover:text-[#79dcff]">Solutions</a><a href="#resources" className="transition hover:text-[#79dcff]">Resources</a><a href="#pricing" className="transition hover:text-[#79dcff]">Pricing</a></div>
+          <div className="flex items-center gap-3 text-sm font-medium"><Link to="/login" className="px-3 py-2 text-slate-100 transition hover:text-[#79dcff]">Sign in</Link><Link to="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#8adfff] px-4 py-2.5 text-[#062033] shadow-[0_6px_30px_rgba(93,211,255,.16)] transition hover:bg-[#b4ecff]">Get started <ArrowRight className="h-4 w-4" /></Link></div>
+        </nav>
+        <div className="relative z-10 mx-auto grid max-w-[1440px] grid-cols-1 px-6 pb-8 pt-16 lg:grid-cols-[43%_57%] lg:px-12 lg:pt-20">
+          <div className="max-w-[550px] pt-5 lg:pt-10">
+            <h1 className="max-w-[290px] text-3xl font-semibold leading-[.98] tracking-[-.05em] text-white sm:text-6xl xl:text-[58px]">WHERE CODE<br /><span className="text-[#70d8ff]">BECOMES COLLABORATION.</span></h1>
+            <p className="mt-7 max-w-[540px] text-lg leading-relaxed text-[#bed2dc]">Write code together, see every change as it happens, and turn ideas into working software from one shared workspace.</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><button onClick={handleHeroCTA} className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg bg-[#82dcff] px-7 text-sm font-semibold text-[#062033] transition hover:bg-[#b2edff]">Start coding free <ArrowRight className="h-4 w-4" /></button><a href="#product" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border border-[#7bcfee]/60 bg-[#061923]/55 px-7 text-sm font-medium text-[#e8f7fc] transition hover:border-[#8be2ff] hover:bg-[#0a2430]/80"><span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#83dfff]"><Play className="h-2.5 w-2.5 fill-current" /></span> Watch demo</a></div>
+            <div className="mt-10 flex max-w-[440px] divide-x divide-cyan-100/15 text-sm text-[#bad0da]"><div className="pr-6 sm:pr-9"><p>Real-time editing</p><strong className="mt-1 block text-xl font-semibold text-white sm:text-2xl">Live</strong></div><div className="px-6 sm:px-9"><p>Shared workspaces</p><strong className="mt-1 block text-xl font-semibold text-white sm:text-2xl">Multi-file</strong></div><div className="pl-6 sm:pl-9"><p>Execution</p><strong className="mt-1 block text-xl font-semibold text-white sm:text-2xl">Built in</strong></div></div>
           </div>
-          <span className="font-semibold text-lg text-dark-100 tracking-tight">CodeSync</span>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          {user ? (
-            <Link
-              to="/dashboard"
-              className="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-sm transition"
-            >
-              Go to Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                className="px-4 py-2 text-sm font-medium text-dark-300 hover:text-dark-100 transition"
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/signup"
-                className="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-sm transition"
-              >
-                Get started
-              </Link>
-            </>
-          )}
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="pt-20 pb-16 px-4 sm:px-6 max-w-6xl mx-auto text-center relative">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold mb-6">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Engineered for seamless developer collaboration</span>
-        </div>
-
-        <h1 className="text-4xl sm:text-6xl font-extrabold text-dark-100 tracking-tight leading-[1.1] mb-6">
-          Code together. <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-brand-400 via-accent-cyan to-accent-emerald bg-clip-text text-transparent">
-            Build together.
-          </span>
-        </h1>
-
-        <p className="text-base sm:text-lg text-dark-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          CodeSync is a real-time collaborative coding platform. Join shared coding rooms, edit code simultaneously with live cursors, chat with teammates, and execute programs in a sandboxed environment.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-16">
-          <button
-            onClick={handleHeroCTA}
-            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition"
-          >
-            <span>Create a room</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-          <Link
-            to={user ? "/dashboard" : "/login"}
-            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-dark-300 hover:text-dark-100 bg-dark-800 hover:bg-dark-750 border border-dark-700 rounded-lg transition"
-          >
-            Explore CodeSync
-          </Link>
-        </div>
-
-        {/* Authentic Product IDE Preview */}
-        <div className="relative mx-auto rounded-xl border border-dark-700 bg-dark-950 shadow-2xl overflow-hidden text-left font-mono text-xs">
-          {/* Mock Window Titlebar */}
-          <div className="h-10 px-4 bg-dark-900 border-b border-dark-750 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-dark-700"></div>
-              <div className="w-3 h-3 rounded-full bg-dark-700"></div>
-              <div className="w-3 h-3 rounded-full bg-dark-700"></div>
-              <span className="ml-3 text-dark-400 font-sans text-xs">main.cpp — CodeSync Room #CS-8F2A</span>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 text-[11px] font-sans">
-                C++ (GCC 9.2.0)
-              </span>
-              <div className="flex -space-x-1.5">
-                <div className="w-5 h-5 rounded-full bg-brand-500 border border-dark-900 flex items-center justify-center text-[9px] text-white font-bold">A</div>
-                <div className="w-5 h-5 rounded-full bg-accent-cyan border border-dark-900 flex items-center justify-center text-[9px] text-white font-bold">B</div>
-              </div>
-            </div>
-          </div>
-
-          {/* IDE Grid */}
-          <div className="grid grid-cols-12 h-[340px]">
-            {/* Explorer Column */}
-            <div className="col-span-3 border-r border-dark-750 bg-dark-950 p-3 hidden md:block">
-              <div className="text-[11px] font-semibold text-dark-500 uppercase tracking-wider mb-2 font-sans">
-                Explorer
-              </div>
-              <div className="space-y-1">
-                <div className="px-2 py-1 rounded bg-dark-800 text-dark-100 flex items-center gap-2">
-                  <span className="text-accent-cyan">◆</span> main.cpp
-                </div>
-                <div className="px-2 py-1 text-dark-400 hover:text-dark-200 flex items-center gap-2">
-                  <span className="text-accent-amber">◆</span> solution.h
-                </div>
-                <div className="px-2 py-1 text-dark-400 hover:text-dark-200 flex items-center gap-2">
-                  <span className="text-dark-500">◆</span> input.txt
-                </div>
-              </div>
-            </div>
-
-            {/* Code Column */}
-            <div className="col-span-12 md:col-span-6 bg-dark-900 p-4 leading-relaxed overflow-hidden">
-              <div className="text-dark-500">// Real-time collaborative coding in C++</div>
-              <div><span className="text-accent-rose">#include</span> <span className="text-brand-300">&lt;iostream&gt;</span></div>
-              <div><span className="text-accent-rose">#include</span> <span className="text-brand-300">&lt;vector&gt;</span></div>
-              <br />
-              <div><span className="text-brand-400">int</span> <span className="text-accent-cyan">main</span>() &#123;</div>
-              <div className="pl-4">
-                std::cout &lt;&lt; <span className="text-accent-emerald">"Hello, CodeSync!"</span> &lt;&lt; std::endl;
-              </div>
-              <div className="pl-4 relative inline-block">
-                <span className="text-dark-300">std::vector&lt;<span className="text-brand-400">int</span>&gt; scores = &#123;98, 100, 95&#125;;</span>
-                {/* Live Remote Cursor Demonstration */}
-                <span className="absolute -top-4 right-0 px-1 py-0.5 rounded bg-accent-cyan text-dark-900 font-sans font-bold text-[9px]">
-                  Rahul
-                </span>
-                <span className="inline-block w-0.5 h-4 bg-accent-cyan ml-0.5 animate-pulse align-middle"></span>
-              </div>
-              <div className="pl-4 text-dark-300">return <span className="text-accent-cyan">0</span>;</div>
-              <div>&#125;</div>
-            </div>
-
-            {/* Terminal Preview Column */}
-            <div className="col-span-3 border-l border-dark-750 bg-dark-950 p-3 hidden md:flex flex-col justify-between">
-              <div>
-                <div className="text-[11px] font-semibold text-dark-500 uppercase tracking-wider mb-2 font-sans flex items-center gap-1.5">
-                  <TerminalIcon className="w-3.5 h-3.5 text-accent-emerald" />
-                  Terminal
-                </div>
-                <div className="p-2 rounded bg-dark-900 border border-dark-800 text-[11px] font-mono text-dark-200">
-                  <div className="text-dark-500">$ g++ -O2 main.cpp</div>
-                  <div className="text-accent-emerald font-semibold mt-1">Hello, CodeSync!</div>
-                  <div className="text-dark-500 text-[10px] mt-2">Program exited with code 0 (12ms)</div>
-                </div>
-              </div>
-
-              <div className="p-2 rounded bg-dark-900/60 border border-dark-800 text-[11px] text-dark-400">
-                <div className="font-semibold text-dark-300 font-sans mb-1">Collaborators (2)</div>
-                <div className="text-dark-400 font-sans text-xs">Deepak: editing main.cpp</div>
-                <div className="text-dark-400 font-sans text-xs">Rahul: viewing</div>
-              </div>
-            </div>
-          </div>
+          <div className="relative mt-14 min-h-[500px] lg:mt-0"><WorkspacePreview /></div>
         </div>
       </section>
-
-      {/* Core Features Grid */}
-      <section className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-dark-750/60">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold text-dark-100 mb-3">
-            Engineered for real engineering teams
-          </h2>
-          <p className="text-sm sm:text-base text-dark-400 max-w-xl mx-auto">
-            Everything you need for pairing, technical interviews, problem-solving, and team code reviews.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-5 rounded-xl bg-dark-850/60 border border-dark-750 hover:border-dark-600 transition">
-            <div className="w-9 h-9 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center mb-4">
-              <Users2 className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-semibold text-dark-100 mb-2">Real-Time Multi-Cursor Editing</h3>
-            <p className="text-xs text-dark-400 leading-relaxed">
-              Edit code simultaneously with teammates. See other developers' cursors, selection highlights, and presence without conflicts.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-xl bg-dark-850/60 border border-dark-750 hover:border-dark-600 transition">
-            <div className="w-9 h-9 rounded-lg bg-accent-cyan/10 text-accent-cyan flex items-center justify-center mb-4">
-              <Cpu className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-semibold text-dark-100 mb-2">Judge0 Sandboxed Execution</h3>
-            <p className="text-xs text-dark-400 leading-relaxed">
-              Compile and run C++ code securely with instant stdout, stderr, compile diagnostics, stdin support, and execution metrics.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-xl bg-dark-850/60 border border-dark-750 hover:border-dark-600 transition">
-            <div className="w-9 h-9 rounded-lg bg-accent-emerald/10 text-accent-emerald flex items-center justify-center mb-4">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-semibold text-dark-100 mb-2">Persistent Workspaces & Chat</h3>
-            <p className="text-xs text-dark-400 leading-relaxed">
-              Manage multi-file projects, chat in real time, and persist all files and discussions in a relational database.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="py-16 px-4 sm:px-6 max-w-4xl mx-auto border-t border-dark-750/60">
-        <h2 className="text-2xl font-bold text-center text-dark-100 mb-10">How CodeSync Works</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-          <div className="space-y-2">
-            <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center mx-auto text-sm">1</div>
-            <h4 className="font-semibold text-dark-100 text-sm">Create a Room</h4>
-            <p className="text-xs text-dark-400">Generate a private or public coding room with default starter code.</p>
-          </div>
-          <div className="space-y-2">
-            <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center mx-auto text-sm">2</div>
-            <h4 className="font-semibold text-dark-100 text-sm">Invite Collaborators</h4>
-            <p className="text-xs text-dark-400">Share your 8-character room code or direct link to jump in instantly.</p>
-          </div>
-          <div className="space-y-2">
-            <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center mx-auto text-sm">3</div>
-            <h4 className="font-semibold text-dark-100 text-sm">Code & Execute</h4>
-            <p className="text-xs text-dark-400">Type together in Monaco, see live cursors, and run programs in real time.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="mt-auto border-t border-dark-750 py-6 px-6 text-center text-xs text-dark-500">
-        CodeSync &copy; {new Date().getFullYear()} — Real-Time Collaborative Coding Platform. Built with React, Monaco, Express, Socket.IO, MySQL & Judge0.
-      </footer>
+      <section id="product" className="relative border-b border-cyan-100/10 px-6 py-24 text-center sm:py-32"><div className="absolute inset-0 opacity-60 [background-image:radial-gradient(ellipse_at_center,rgba(25,111,148,.14),transparent_55%)]" /><div className="relative mx-auto max-w-3xl"><p className="font-mono text-[11px] uppercase tracking-[.24em] text-[#8ecde4]">Built for real collaboration</p><h2 className="mt-4 text-4xl font-semibold tracking-[-.04em] text-white sm:text-5xl">More than a code editor.<br /><span className="text-[#70d8ff]">A shared space to create.</span></h2></div></section>
+      <section id="solutions" className="border-b border-cyan-100/10 bg-[#04141d] px-6 py-20 sm:py-28"><div className="mx-auto max-w-6xl"><div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-end"><div className="max-w-xl"><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#84dfff]">See CodeSync in action</p><h2 className="mt-4 text-3xl font-semibold tracking-[-.04em] text-white sm:text-4xl">A workspace that keeps people and code in the same place.</h2><p className="mt-4 text-sm leading-relaxed text-slate-400">Use this section for a short walkthrough of how your project works—from creating a room to running code together.</p></div><div className="overflow-hidden border border-cyan-100/15 bg-[#020d13] shadow-[0_20px_50px_rgba(0,0,0,.22)]"><div className="flex items-center justify-between border-b border-cyan-100/10 px-4 py-3"><span className="font-mono text-[11px] uppercase tracking-[.16em] text-slate-400">Project walkthrough</span><span className="text-[11px] text-slate-500">YouTube</span></div><div className="aspect-video bg-[#061923]">{PROJECT_WALKTHROUGH_URL ? <iframe className="h-full w-full" src={PROJECT_WALKTHROUGH_URL} title="CodeSync project walkthrough" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /> : <div className="flex h-full flex-col items-center justify-center px-6 text-center"><span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#84dfff]/35 bg-[#0a2a38] text-[#84dfff]"><Play className="ml-0.5 h-5 w-5" /></span><p className="mt-4 text-sm font-medium text-slate-200">Your project walkthrough video</p><p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">Paste a public YouTube embed URL into <code className="text-slate-400">PROJECT_WALKTHROUGH_URL</code> to show it here.</p></div>}</div></div></div><div className="mt-12 grid gap-px border border-cyan-100/10 bg-cyan-100/10 md:grid-cols-3">{[{ icon: <Users />, title: 'Work side by side', text: 'See who is in the room, where they are working, and the changes they make as they happen.' }, { icon: <Terminal />, title: 'Run without context switching', text: 'Use the built-in execution panel to test code and review output alongside the editor.' }, { icon: <MessageSquare />, title: 'Keep the discussion close', text: 'Room chat keeps questions, decisions, and code reviews connected to the work.' }].map(({ icon, title, text }) => <article key={title} className="bg-[#061923] p-7"><span className="inline-flex rounded-lg bg-[#0b2c3b] p-2.5 text-[#84dfff]">{React.cloneElement(icon, { className: 'h-5 w-5' })}</span><h3 className="mt-5 text-lg font-semibold text-white">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-400">{text}</p></article>)}</div></div></section>
+      <section id="resources" className="px-6 py-20 sm:py-28"><div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1fr_1.35fr] lg:items-center"><div><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#84dfff]">Resources</p><h2 className="mt-4 text-3xl font-semibold tracking-[-.04em] text-white sm:text-4xl">A calmer way to bring the team into the codebase.</h2><p className="mt-5 max-w-md text-sm leading-relaxed text-slate-400">Create a room for a pairing session, a technical interview, a review, or an issue that needs two minds on it. Share one link and start working.</p><Link to={user ? '/dashboard' : '/signup'} className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#84dfff] hover:text-white">Open a workspace <ArrowRight className="h-4 w-4" /></Link></div><div className="grid gap-3 sm:grid-cols-2"><ResourceCard icon={<Share2 />} title="Share a room" text="Invite people with a room code or direct link." /><ResourceCard icon={<GitBranch />} title="Organize files" text="Keep multi-file workspaces focused and easy to navigate." /><ResourceCard icon={<ShieldCheck />} title="Control access" text="Use owner, editor, and viewer roles for the right level of access." /><ResourceCard icon={<BookOpen />} title="Keep context" text="Files, messages, and workspace history live together." /></div></div></section>
+      <section id="pricing" className="border-y border-cyan-100/10 bg-[#061923] px-6 py-20 sm:py-28"><div className="mx-auto max-w-4xl text-center"><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#84dfff]">Start collaborating</p><h2 className="mt-4 text-3xl font-semibold tracking-[-.04em] text-white sm:text-4xl">Set up a workspace in minutes.</h2><p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-400">CodeSync is built to get your team into a shared coding session quickly—with no new workflow to learn.</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><button onClick={handleHeroCTA} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#82dcff] px-6 py-3 text-sm font-semibold text-[#062033] transition hover:bg-[#b2edff]">Get started <ArrowRight className="h-4 w-4" /></button><a href="#product" className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-100/20 px-6 py-3 text-sm font-medium text-slate-200 transition hover:border-[#84dfff] hover:text-white">Explore the workspace</a></div></div></section>
+      <footer className="px-6 py-8"><div className="mx-auto flex max-w-6xl flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 text-slate-300"><BrandMark size={22} /> <span className="font-semibold">CodeSync</span></div><p>Real-time collaborative coding for teams that build together.</p></div></footer>
     </div>
   );
 };
+
+const WorkspacePreview = () => <div className="absolute inset-x-0 top-0 overflow-hidden rounded-xl border border-[#58c7ed]/60 bg-[#03131d]/95 shadow-[0_20px_80px_rgba(0,0,0,.5),0_0_35px_rgba(68,194,237,.16)] lg:-left-2 lg:top-10"><div className="flex h-14 items-center justify-between border-b border-cyan-100/10 px-4"><div className="flex items-center gap-2 text-sm font-semibold"><BrandMark size={20} />CodeSync</div><div className="hidden items-center gap-1 text-xs text-[#b3d3de] sm:flex"><Braces className="h-3.5 w-3.5 text-[#66d9ff]" />Acme <span className="text-slate-500">/</span> realtime-chat <ChevronDown className="h-3 w-3" /></div><div className="flex items-center gap-2"><div className="hidden -space-x-2 sm:flex"><Avatar initials="A" color="bg-[#ce7b72]" /><Avatar initials="R" color="bg-[#46a69a]" /><Avatar initials="J" color="bg-[#8d7ac0]" /></div><span className="rounded-full bg-[#12393d] px-3 py-1.5 text-xs font-semibold text-[#bdf6df]"><i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-400" />Live</span></div></div><div className="grid min-h-[390px] grid-cols-[180px_1fr] sm:grid-cols-[225px_1fr]"><aside className="hidden border-r border-cyan-100/10 p-3 text-sm text-[#c5d8df] sm:block"><div className="space-y-1"><PreviewNav icon={<FolderOpen />} text="Files" active /><PreviewNav icon={<Search />} text="Search" /><PreviewNav icon={<Users />} text="Collaborators" /><PreviewNav icon={<Play />} text="Run" /><PreviewNav icon={<Settings />} text="Settings" /></div><div className="mt-5 border-t border-cyan-100/10 pt-4 text-[10px] uppercase tracking-wider text-[#85a1ad]">Workspace</div><div className="mt-3 space-y-2 text-xs"><p>▾ &nbsp; 📁 realtime-chat</p><p className="pl-4">▾ &nbsp; 📁 client</p><p className="pl-8">▾ &nbsp; 📁 src</p><p className="pl-12">▾ &nbsp; 📁 components</p><p className="rounded bg-[#123040] py-1 pl-14 text-[#b8e8f7]">⚛ ChatWindow.tsx</p><p className="pl-14">⚛ MessageList.tsx</p><p className="pl-14">⚛ UserList.tsx</p></div></aside><div className="min-w-0"><div className="flex h-12 items-end overflow-hidden border-b border-cyan-100/10 text-xs"><span className="inline-flex h-full items-center gap-2 border-r border-cyan-100/10 border-t-2 border-t-[#5ed6ff] bg-[#081d29] px-3 text-white"><Code2 className="h-3.5 w-3.5 text-[#66d9ff]" />ChatWindow.tsx <X className="h-3 w-3 text-slate-400" /></span><span className="hidden h-full items-center gap-2 px-4 text-[#a6bbc4] md:inline-flex"><Settings className="h-3.5 w-3.5" />useSocket.ts</span><span className="hidden h-full items-center gap-2 px-4 text-[#a6bbc4] lg:inline-flex">{'{}'} package.json</span></div><div className="relative p-4 font-mono text-[10px] leading-[1.9] text-[#bfd5de] sm:p-6 sm:text-xs">{codeLines.map((line, index) => <div className="grid grid-cols-[25px_1fr]" key={index}><span className="select-none text-[#557887]">{index + 1}</span><code><span className="text-[#ff91d5]">{line[0]}</span><span className="text-[#54e2ff]">{line[1]}</span><span className="text-[#ff91d5]">{line[2]}</span><span className="text-[#f5d86d]">{line[3]}</span></code></div>)}<span className="absolute right-[12%] top-[23%] hidden rounded bg-[#3199cc] px-3 py-1.5 font-sans text-sm font-semibold text-white shadow-lg md:block">Ava</span><span className="absolute right-[7%] top-[48%] hidden rounded bg-[#b8519f] px-3 py-1.5 font-sans text-sm font-semibold text-white shadow-lg md:block">Rohan</span><div className="absolute bottom-5 right-4 hidden w-52 rounded-lg border border-[#365968] bg-[#0a202c] p-3 font-sans text-xs shadow-xl lg:block"><div className="flex items-center gap-2"><Avatar initials="J" color="bg-[#72859d]" /><strong>Jordan</strong><span className="ml-auto text-[10px] text-[#8ca6b0]">now</span></div><p className="mt-2 text-[#d5e5ea]">This looks great! 🚀</p></div></div></div></div></div>;
+const PreviewNav = ({ icon, text, active }) => <div className={`flex items-center gap-3 rounded px-3 py-2 ${active ? 'bg-[#123040] text-white' : 'text-[#b5cbd4]'}`}>{React.cloneElement(icon, { className: 'h-4 w-4' })}{text}</div>;
+const ResourceCard = ({ icon, title, text }) => <article className="border border-cyan-100/10 bg-[#061923] p-5 transition hover:border-cyan-200/25 hover:bg-[#082330]"><span className="text-[#84dfff]">{React.cloneElement(icon, { className: 'h-5 w-5' })}</span><h3 className="mt-4 font-semibold text-white">{title}</h3><p className="mt-1 text-sm leading-relaxed text-slate-400">{text}</p></article>;

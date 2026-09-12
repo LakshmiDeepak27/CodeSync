@@ -63,6 +63,14 @@ export class RoomController {
         myRole = await RoomService.checkUserRoomRole(room.id, userId);
       }
 
+      // If room is private, reject non-members
+      if (room.visibility === 'PRIVATE' && !myRole) {
+        return res.status(403).json({
+          success: false,
+          message: 'This room is private. You must be an invited member to access it.'
+        });
+      }
+
       res.status(200).json({
         success: true,
         room: {

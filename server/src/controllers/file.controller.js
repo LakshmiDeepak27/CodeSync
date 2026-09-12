@@ -19,7 +19,8 @@ export class FileController {
     try {
       const { fileId } = req.params;
       const { content } = req.body;
-      const file = await FileService.updateContent(fileId, content);
+      const userId = req.user.userId;
+      const file = await FileService.updateContent(fileId, content, userId);
       res.status(200).json({
         success: true,
         file
@@ -33,7 +34,8 @@ export class FileController {
     try {
       const { fileId } = req.params;
       const { name } = req.body;
-      const file = await FileService.renameFile(fileId, name);
+      const userId = req.user.userId;
+      const file = await FileService.renameFile(fileId, name, userId);
       res.status(200).json({
         success: true,
         message: 'File renamed successfully.',
@@ -48,8 +50,9 @@ export class FileController {
     try {
       const { fileId } = req.params;
       const { roomId } = req.query;
+      const userId = req.user.userId;
 
-      await FileService.deleteFile(fileId, roomId);
+      await FileService.deleteFile(fileId, roomId, userId);
       res.status(200).json({
         success: true,
         message: 'File deleted successfully.'

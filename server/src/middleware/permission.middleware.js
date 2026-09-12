@@ -11,10 +11,8 @@ export const requireRoomRole = (allowedRoles = ['OWNER', 'EDITOR']) => {
       const userId = req.user?.userId;
 
       if (!roomId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Room ID is required.'
-        });
+        // If no roomId is provided, allow authenticated execution (solo playground mode)
+        return next();
       }
 
       if (!userId) {
@@ -24,7 +22,15 @@ export const requireRoomRole = (allowedRoles = ['OWNER', 'EDITOR']) => {
         });
       }
 
-      const role = await RoomService.checkUserRoomRole(roomId, userId);
+      let role = await RoomService.checkUserRoomRole(roomId, userId);
+
+      if (!role) {
+        const room = await RoomService.getRoomByCodeOrId(roomId);
+        if (room && room.visibility === 'PUBLIC') {
+          await RoomService.joinRoom({ roomCodeOrId: room.id, userId }).catch(() => {});
+          role = 'EDITOR';
+        }
+      }
 
       if (!role) {
         return res.status(403).json({

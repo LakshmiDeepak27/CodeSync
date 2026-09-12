@@ -21,6 +21,26 @@ export const authService = {
     return res.data.user;
   },
 
+  async updateProfile(data) {
+    const res = await api.put('/auth/profile', data);
+    return res.data;
+  },
+
+  async requestPasswordReset(email) {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  },
+
+  async resetPassword(email, code, newPassword) {
+    const res = await api.post('/auth/reset-password', { email, code, newPassword });
+    return res.data;
+  },
+
+  async verifyEmail(email, code) {
+    const res = await api.post('/auth/verify-email', { email, code });
+    return res.data;
+  },
+
   getGoogleAuthUrl() {
     return '/api/auth/google';
   }
