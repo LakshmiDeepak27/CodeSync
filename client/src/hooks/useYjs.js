@@ -2,6 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import * as Y from 'yjs';
 import { SocketIOProvider } from 'y-socket.io';
 
+const USER_COLORS = [
+  '#38bdf8', '#34d399', '#fbbf24', '#f472b6',
+  '#a78bfa', '#2dd4bf', '#fb923c', '#60a5fa'
+];
+
+export const getColorForUser = (name = '') => {
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = (name || '').charCodeAt(i) + ((hash << 5) - hash);
+  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+};
+
 export function useYjs(roomId, username) {
   const ydoc = useMemo(() => new Y.Doc(), [roomId]);
   const yFiles = useMemo(() => ydoc.getMap('files'), [ydoc]);
@@ -39,16 +50,30 @@ export function useYjs(roomId, username) {
       // ignore
     }
 
-    const socketProvider = new SocketIOProvider(socketUrl, roomId, ydoc, {
-      autoConnect: true,
-      withCredentials: true,
-      auth: { token }
-    });
+    const socketProvider = new SocketIOProvider(
+      socketUrl,
+      roomId,
+      ydoc,
+      {
+        autoConnect: true,
+        auth: { token }
+      },
+      {
+        withCredentials: true,
+        transports: ['websocket', 'polling']
+      }
+    );
 
     setProvider(socketProvider);
 
     // Set local awareness user state
-    socketProvider.awareness.setLocalStateField('user', { username });
+    const userColor = getColorForUser(username);
+    socketProvider.awareness.setLocalStateField('user', {
+      name: username,
+      username,
+      color: userColor,
+      colorLight: userColor + '33'
+    });
 
     const handleConnect = () => setIsConnected(true);
     const handleDisconnect = () => setIsConnected(false);

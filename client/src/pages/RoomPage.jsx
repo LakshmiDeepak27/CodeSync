@@ -4,7 +4,7 @@ import { Editor } from '@monaco-editor/react';
 import { MonacoBinding } from 'y-monaco';
 import * as Y from 'yjs';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { useYjs } from '../hooks/useYjs.js';
+import { useYjs, getColorForUser } from '../hooks/useYjs.js';
 import { roomService } from '../services/room.js';
 import { executionService } from '../services/execution.js';
 
@@ -532,33 +532,37 @@ export const RoomPage = () => {
     };
   }, [roomId]);
 
-  // Ensure default file exists on sync
+  // Ensure default file exists on sync without overwriting remote collaborator edits
   useEffect(() => {
-    if (!synced || !yFiles) return;
+    if (!yFiles) return;
 
-    if (yFiles.size === 0) {
+    if (synced && yFiles.size === 0) {
       if (room?.files && room.files.length > 0) {
         room.files.forEach((f) => {
-          const text = new Y.Text();
-          text.insert(0, f.content || '');
-          yFiles.set(f.name, text);
+          if (!yFiles.has(f.name)) {
+            const text = new Y.Text();
+            text.insert(0, f.content || '');
+            yFiles.set(f.name, text);
+          }
         });
         const first = room.files[0].name;
-        setActiveFile(first);
-        setOpenFiles([first]);
+        setActiveFile((prev) => (yFiles.has(prev) ? prev : first));
+        setOpenFiles((prev) => (prev.length > 0 ? prev : [first]));
       } else {
-        const defaultText = new Y.Text();
-        defaultText.insert(
-          0,
-          '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n'
-        );
-        yFiles.set('main.cpp', defaultText);
-        setActiveFile('main.cpp');
-        setOpenFiles(['main.cpp']);
+        if (!yFiles.has('main.cpp')) {
+          const defaultText = new Y.Text();
+          defaultText.insert(
+            0,
+            '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n'
+          );
+          yFiles.set('main.cpp', defaultText);
+        }
+        setActiveFile((prev) => prev || 'main.cpp');
+        setOpenFiles((prev) => (prev.length > 0 ? prev : ['main.cpp']));
       }
-    } else {
+    } else if (yFiles.size > 0) {
       const keys = Array.from(yFiles.keys());
-      if (keys.length > 0 && !yFiles.has(activeFile)) {
+      if (!yFiles.has(activeFile)) {
         setActiveFile(keys[0]);
         setOpenFiles((prev) => (prev.includes(keys[0]) ? prev : [keys[0], ...prev]));
       }
@@ -617,6 +621,19 @@ export const RoomPage = () => {
           lines: model ? model.getLineCount() : 1,
           chars: model ? model.getValueLength() : 0
         });
+
+        // Broadcast cursor position via main socket as well
+        try {
+          const s = getSocket();
+          if (s && s.connected) {
+            s.emit(SOCKET_EVENTS.CURSOR_UPDATE, {
+              roomId,
+              fileId: activeFile,
+              line: pos.lineNumber,
+              column: pos.column
+            });
+          }
+        } catch {}
       }
     };
 
@@ -648,9 +665,80 @@ export const RoomPage = () => {
     }
   }, [theme, monaco]);
 
+  // Inject dynamic styles for collaborator cursors and name badges
+  useEffect(() => {
+    if (!provider?.awareness) return;
+
+    const updateCursorStyles = () => {
+      const styleId = 'yjs-collaborator-cursor-styles';
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+
+      let css = '';
+      provider.awareness.getStates().forEach((state, clientID) => {
+        if (state?.user) {
+          const col = state.user.color || '#38bdf8';
+          const name = state.user.username || state.user.name || 'Collaborator';
+          css += `
+            .yRemoteSelection-${clientID} {
+              background-color: ${col}33 !important;
+            }
+            .yRemoteSelectionHead-${clientID} {
+              border-color: ${col} !important;
+            }
+            .yRemoteSelectionHead-${clientID}::after {
+              border-color: ${col} !important;
+              background-color: ${col} !important;
+            }
+            .yRemoteSelectionHead-${clientID}::before {
+              content: "${name}";
+              position: absolute;
+              top: -20px;
+              left: -2px;
+              font-size: 10px;
+              font-family: Inter, system-ui, sans-serif;
+              font-weight: 600;
+              padding: 1px 5px;
+              border-radius: 3px;
+              background-color: ${col};
+              color: #000000;
+              white-space: nowrap;
+              pointer-events: none;
+              z-index: 50;
+              box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            }
+          `;
+        }
+      });
+      styleEl.textContent = css;
+    };
+
+    provider.awareness.on('change', updateCursorStyles);
+    updateCursorStyles();
+
+    return () => {
+      provider.awareness.off('change', updateCursorStyles);
+    };
+  }, [provider]);
+
   // Handle active file change and Monaco model/binding sync
   useEffect(() => {
-    if (!editor || !monaco || !activeFile || !synced) return;
+    if (!editor || !monaco || !activeFile || !yFiles) return;
+
+    let yText = yFiles.get(activeFile);
+    if (!yText) {
+      if (synced && yFiles.size === 0) {
+        yText = new Y.Text();
+        yText.insert(0, '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n');
+        yFiles.set(activeFile, yText);
+      } else {
+        return;
+      }
+    }
 
     // Clean up previous binding
     if (bindingRef.current) {
@@ -660,12 +748,6 @@ export const RoomPage = () => {
 
     const uri = monaco.Uri.file(activeFile);
     let model = monaco.editor.getModel(uri);
-
-    let yText = yFiles.get(activeFile);
-    if (!yText) {
-      yText = new Y.Text();
-      yFiles.set(activeFile, yText);
-    }
 
     if (!model) {
       const lang = getLanguageFromExtension(activeFile);
@@ -685,9 +767,13 @@ export const RoomPage = () => {
 
     // Update local awareness about what file we are currently editing
     if (provider?.awareness) {
+      const userCol = getColorForUser(username);
       provider.awareness.setLocalStateField('user', {
+        name: username,
         username,
-        activeFile
+        activeFile,
+        color: userCol,
+        colorLight: userCol + '33'
       });
     }
 
