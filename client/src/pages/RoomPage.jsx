@@ -90,7 +90,22 @@ export const RoomPage = () => {
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
 
-  const username = user?.username || user?.name || 'Coder';
+  const guestUser = React.useMemo(() => {
+    if (user) return null;
+    try {
+      const stored = localStorage.getItem('codesync_guest_user');
+      if (stored) return JSON.parse(stored);
+      const rnd = Math.random().toString(36).substring(2, 6);
+      const g = { id: `guest_${rnd}`, username: `Guest_${rnd}`, name: `Guest_${rnd}`, isGuest: true };
+      localStorage.setItem('codesync_guest_user', JSON.stringify(g));
+      return g;
+    } catch {
+      return { id: 'guest', username: 'Guest', name: 'Guest' };
+    }
+  }, [user]);
+
+  const currentUser = user || guestUser;
+  const username = currentUser?.username || currentUser?.name || 'Coder';
 
   // Resonyx Yjs collaboration provider
   const { ydoc, yFiles, yFolders, synced, users, isConnected, provider } = useYjs(roomId, username);
@@ -532,42 +547,47 @@ export const RoomPage = () => {
     };
   }, [roomId]);
 
-  // Ensure default file exists on sync without overwriting remote collaborator edits
+  // Ensure active file is valid and only seed default file if room is truly empty after network sync
   useEffect(() => {
     if (!yFiles) return;
 
-    if (synced && yFiles.size === 0) {
-      if (room?.files && room.files.length > 0) {
-        room.files.forEach((f) => {
-          if (!yFiles.has(f.name)) {
-            const text = new Y.Text();
-            text.insert(0, f.content || '');
-            yFiles.set(f.name, text);
-          }
-        });
-        const first = room.files[0].name;
-        setActiveFile((prev) => (yFiles.has(prev) ? prev : first));
-        setOpenFiles((prev) => (prev.length > 0 ? prev : [first]));
-      } else {
-        if (!yFiles.has('main.cpp')) {
-          const defaultText = new Y.Text();
-          defaultText.insert(
-            0,
-            '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n'
-          );
-          yFiles.set('main.cpp', defaultText);
-        }
-        setActiveFile((prev) => prev || 'main.cpp');
-        setOpenFiles((prev) => (prev.length > 0 ? prev : ['main.cpp']));
-      }
-    } else if (yFiles.size > 0) {
+    if (yFiles.size > 0) {
       const keys = Array.from(yFiles.keys());
       if (!yFiles.has(activeFile)) {
         setActiveFile(keys[0]);
         setOpenFiles((prev) => (prev.includes(keys[0]) ? prev : [keys[0], ...prev]));
       }
+    } else if (synced && yFiles.size === 0) {
+      const timer = setTimeout(() => {
+        if (yFiles && yFiles.size === 0) {
+          if (room?.files && room.files.length > 0) {
+            room.files.forEach((f) => {
+              if (!yFiles.has(f.name)) {
+                const text = new Y.Text();
+                text.insert(0, f.content || '');
+                yFiles.set(f.name, text);
+              }
+            });
+            const first = room.files[0].name;
+            setActiveFile(first);
+            setOpenFiles([first]);
+          } else {
+            if (!yFiles.has('main.cpp')) {
+              const defaultText = new Y.Text();
+              defaultText.insert(
+                0,
+                '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n'
+              );
+              yFiles.set('main.cpp', defaultText);
+            }
+            setActiveFile('main.cpp');
+            setOpenFiles(['main.cpp']);
+          }
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [synced, yFiles, room]);
+  }, [synced, yFiles, room, filesVersion, activeFile]);
 
   // Monaco mount handler
   const handleMount = (editorInstance, monacoInstance) => {
@@ -622,6 +642,24 @@ export const RoomPage = () => {
           chars: model ? model.getValueLength() : 0
         });
 
+        // Broadcast awareness selection immediately for Monaco collaborator cursor
+        if (provider?.awareness && model) {
+          try {
+            const yText = yFiles?.get(activeFile);
+            if (yText) {
+              const sel = editorInstance.getSelection();
+              const startPos = sel ? sel.getStartPosition() : pos;
+              const endPos = sel ? sel.getEndPosition() : pos;
+              const anchor = model.getOffsetAt(startPos);
+              const head = model.getOffsetAt(endPos);
+              provider.awareness.setLocalStateField('selection', {
+                anchor: Y.createRelativePositionFromTypeIndex(yText, anchor),
+                head: Y.createRelativePositionFromTypeIndex(yText, head)
+              });
+            }
+          } catch {}
+        }
+
         // Broadcast cursor position via main socket as well
         try {
           const s = getSocket();
@@ -665,6 +703,19 @@ export const RoomPage = () => {
     }
   }, [theme, monaco]);
 
+  // Track yFiles mutations reactively so RoomPage re-evaluates activeFile and Monaco bindings
+  const [filesVersion, setFilesVersion] = useState(0);
+  useEffect(() => {
+    if (!yFiles) return;
+    const handleYFilesChange = () => {
+      setFilesVersion((v) => v + 1);
+    };
+    yFiles.observe(handleYFilesChange);
+    return () => {
+      yFiles.unobserve(handleYFilesChange);
+    };
+  }, [yFiles]);
+
   // Inject dynamic styles for collaborator cursors and name badges
   useEffect(() => {
     if (!provider?.awareness) return;
@@ -682,34 +733,22 @@ export const RoomPage = () => {
       provider.awareness.getStates().forEach((state, clientID) => {
         if (state?.user) {
           const col = state.user.color || '#38bdf8';
-          const name = state.user.username || state.user.name || 'Collaborator';
+          const name = (state.user.username || state.user.name || 'Collaborator').replace(/"/g, '\\"');
           css += `
             .yRemoteSelection-${clientID} {
               background-color: ${col}33 !important;
             }
             .yRemoteSelectionHead-${clientID} {
-              border-color: ${col} !important;
-            }
-            .yRemoteSelectionHead-${clientID}::after {
-              border-color: ${col} !important;
+              border-left-color: ${col} !important;
               background-color: ${col} !important;
             }
             .yRemoteSelectionHead-${clientID}::before {
-              content: "${name}";
-              position: absolute;
-              top: -20px;
-              left: -2px;
-              font-size: 10px;
-              font-family: Inter, system-ui, sans-serif;
-              font-weight: 600;
-              padding: 1px 5px;
-              border-radius: 3px;
-              background-color: ${col};
-              color: #000000;
-              white-space: nowrap;
-              pointer-events: none;
-              z-index: 50;
-              box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+              content: "${name}" !important;
+              background-color: ${col} !important;
+              color: #ffffff !important;
+            }
+            .yRemoteSelectionHead-${clientID}::after {
+              background-color: ${col} !important;
             }
           `;
         }
@@ -731,9 +770,15 @@ export const RoomPage = () => {
 
     let yText = yFiles.get(activeFile);
     if (!yText) {
+      const keys = Array.from(yFiles.keys());
+      if (keys.length > 0 && !yFiles.has(activeFile)) {
+        setActiveFile(keys[0]);
+        return;
+      }
       if (synced && yFiles.size === 0) {
-        yText = new Y.Text();
-        yText.insert(0, '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n');
+        yText = new Y.Text(
+          '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n'
+        );
         yFiles.set(activeFile, yText);
       } else {
         return;
@@ -752,6 +797,10 @@ export const RoomPage = () => {
     if (!model) {
       const lang = getLanguageFromExtension(activeFile);
       model = monaco.editor.createModel(yText.toString(), lang, uri);
+    } else {
+      if (model.getValue() !== yText.toString()) {
+        model.setValue(yText.toString());
+      }
     }
 
     editor.setModel(model);
@@ -765,7 +814,7 @@ export const RoomPage = () => {
     );
     bindingRef.current = binding;
 
-    // Update local awareness about what file we are currently editing
+    // Update local awareness about what file we are currently editing and cursor position
     if (provider?.awareness) {
       const userCol = getColorForUser(username);
       provider.awareness.setLocalStateField('user', {
@@ -775,6 +824,16 @@ export const RoomPage = () => {
         color: userCol,
         colorLight: userCol + '33'
       });
+
+      const sel = editor.getSelection();
+      if (sel) {
+        const anchor = model.getOffsetAt(sel.getStartPosition());
+        const head = model.getOffsetAt(sel.getEndPosition());
+        provider.awareness.setLocalStateField('selection', {
+          anchor: Y.createRelativePositionFromTypeIndex(yText, anchor),
+          head: Y.createRelativePositionFromTypeIndex(yText, head)
+        });
+      }
     }
 
     return () => {
@@ -783,7 +842,7 @@ export const RoomPage = () => {
         bindingRef.current = null;
       }
     };
-  }, [editor, monaco, activeFile, synced, yFiles, provider, username]);
+  }, [editor, monaco, activeFile, synced, yFiles, provider, username, filesVersion]);
 
   // Handle model cleanup on file deletion
   useEffect(() => {

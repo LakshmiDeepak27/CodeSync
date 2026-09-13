@@ -47,14 +47,28 @@ export function setupSocketIO(io) {
       }
 
       if (!token) {
-        return next(new Error('Authentication required for WebSocket connection'));
+        const guestName = socket.handshake.auth?.username || socket.handshake.query?.username || `Guest_${socket.id.substring(0, 5)}`;
+        socket.user = {
+          userId: `guest_${socket.id}`,
+          username: guestName,
+          name: guestName,
+          isGuest: true
+        };
+        return next();
       }
 
       const decoded = jwt.verify(token, ENV.JWT_SECRET);
       socket.user = decoded;
       next();
     } catch (error) {
-      next(new Error('Invalid or expired authentication token'));
+      const guestName = socket.handshake.auth?.username || `Guest_${socket.id.substring(0, 5)}`;
+      socket.user = {
+        userId: `guest_${socket.id}`,
+        username: guestName,
+        name: guestName,
+        isGuest: true
+      };
+      next();
     }
   });
 

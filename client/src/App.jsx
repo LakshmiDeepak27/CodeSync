@@ -17,7 +17,14 @@ import { roomService } from './services/room.js';
 const ProtectedRoomRoute = ({ user }) => {
   const { roomId } = useParams();
   if (!user) {
-    return <Navigate to={`/login?redirect=${encodeURIComponent(`/room/${roomId}`)}`} replace />;
+    try {
+      let guestUser = localStorage.getItem('codesync_guest_user');
+      if (!guestUser) {
+        const rnd = Math.random().toString(36).substring(2, 6);
+        const g = { id: `guest_${rnd}`, username: `Guest_${rnd}`, name: `Guest_${rnd}`, isGuest: true };
+        localStorage.setItem('codesync_guest_user', JSON.stringify(g));
+      }
+    } catch {}
   }
   return <RoomPage />;
 };

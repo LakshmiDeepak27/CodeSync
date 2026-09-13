@@ -10,6 +10,7 @@ import apiRoutes from './routes/index.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { setupSocketIO } from './sockets/index.js';
 import { prisma } from './services/prisma.js';
+import * as Y from 'yjs';
 
 import path from 'path';
 import fs from 'fs';
@@ -105,6 +106,37 @@ const io = new SocketIOServer(server, {
 
 const ySocketIO = new YSocketIO(io);
 ySocketIO.initialize();
+
+// Seed initial files for newly loaded rooms so all clients share the exact same Y.Text instances
+ySocketIO.on('document-loaded', async (doc) => {
+  try {
+    const yFiles = doc.getMap('files');
+    if (yFiles.size === 0) {
+      const roomId = doc.name;
+      const room = await prisma.room.findFirst({
+        where: {
+          OR: [{ id: roomId }, { roomCode: roomId.toUpperCase() }]
+        },
+        include: { files: true }
+      });
+      if (room?.files && room.files.length > 0) {
+        room.files.forEach((f) => {
+          if (!yFiles.has(f.name)) {
+            const text = new Y.Text(f.content || '');
+            yFiles.set(f.name, text);
+          }
+        });
+      } else {
+        const text = new Y.Text(
+          '#include <iostream>\n\nint main() {\n    std::cout << "Hello, CodeSync!" << std::endl;\n    return 0;\n}\n'
+        );
+        yFiles.set('main.cpp', text);
+      }
+    }
+  } catch (err) {
+    console.error('[Yjs] Error initializing document:', err);
+  }
+});
 
 setupSocketIO(io);
 
