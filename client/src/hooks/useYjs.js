@@ -19,14 +19,30 @@ export function useYjs(roomId, username) {
       return;
     }
 
-    const isDevVite =
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
-      (window.location.port === '5175' || window.location.port === '5173');
-    const socketUrl = isDevVite ? 'http://localhost:5000' : window.location.origin;
+    let socketUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+    if (import.meta.env.VITE_SOCKET_URL) {
+      socketUrl = import.meta.env.VITE_SOCKET_URL;
+    } else if (import.meta.env.VITE_SERVER_URL) {
+      socketUrl = import.meta.env.VITE_SERVER_URL;
+    } else {
+      const isDevVite =
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+        (window.location.port === '5175' || window.location.port === '5173');
+      socketUrl = isDevVite ? 'http://localhost:5000' : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
+    }
+
+    let token = null;
+    try {
+      token = localStorage.getItem('codesync_token');
+    } catch {
+      // ignore
+    }
 
     const socketProvider = new SocketIOProvider(socketUrl, roomId, ydoc, {
-      autoConnect: true
+      autoConnect: true,
+      withCredentials: true,
+      auth: { token }
     });
 
     setProvider(socketProvider);

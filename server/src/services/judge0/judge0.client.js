@@ -10,6 +10,17 @@ if (ENV.JUDGE0_API_KEY) {
   headers['X-Auth-Token'] = ENV.JUDGE0_API_KEY;
 }
 
+try {
+  const url = new URL(ENV.JUDGE0_BASE_URL);
+  if (process.env.JUDGE0_HOST) {
+    headers['X-RapidAPI-Host'] = process.env.JUDGE0_HOST;
+  } else if (url.hostname.includes('rapidapi.com')) {
+    headers['X-RapidAPI-Host'] = url.hostname;
+  }
+} catch {
+  // Ignore URL parse error for relative or local endpoints
+}
+
 export const judge0Client = axios.create({
   baseURL: ENV.JUDGE0_BASE_URL,
   headers,

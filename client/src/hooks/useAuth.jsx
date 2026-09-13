@@ -25,12 +25,26 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const res = await authService.login(credentials);
+    if (res.token) {
+      try {
+        localStorage.setItem('codesync_token', res.token);
+      } catch {
+        // LocalStorage restricted
+      }
+    }
     setUser(res.user);
     return res;
   };
 
   const register = async (data) => {
     const res = await authService.register(data);
+    if (res.token) {
+      try {
+        localStorage.setItem('codesync_token', res.token);
+      } catch {
+        // LocalStorage restricted
+      }
+    }
     setUser(res.user);
     return res;
   };
@@ -39,6 +53,11 @@ export const AuthProvider = ({ children }) => {
     try {
       await authService.logout();
     } finally {
+      try {
+        localStorage.removeItem('codesync_token');
+      } catch {
+        // LocalStorage restricted
+      }
       disconnectSocket();
       setUser(null);
     }
@@ -46,6 +65,13 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (data) => {
     const res = await authService.updateProfile(data);
+    if (res.token) {
+      try {
+        localStorage.setItem('codesync_token', res.token);
+      } catch {
+        // LocalStorage restricted
+      }
+    }
     setUser(res.user);
     return res.user;
   };

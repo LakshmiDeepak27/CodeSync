@@ -6,5 +6,8 @@
   "exports": {
     "./constants": "./constants.js",
     "./events": "./events.js"
+  },
+  "scripts": {
+    "build": "node -e \"console.log('@codesync/shared ready')\""
   }
 }

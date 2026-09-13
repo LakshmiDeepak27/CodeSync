@@ -19,6 +19,7 @@ export class AuthController {
       res.status(201).json({
         success: true,
         message: 'Account created successfully.',
+        token,
         user
       });
     } catch (error) {
@@ -33,6 +34,7 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Logged in successfully.',
+        token,
         user
       });
     } catch (error) {
@@ -76,6 +78,7 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Profile updated successfully.',
+        token,
         user
       });
     } catch (error) {
