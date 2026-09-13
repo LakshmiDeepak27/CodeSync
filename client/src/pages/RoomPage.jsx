@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Editor } from '@monaco-editor/react';
 import { MonacoBinding } from 'y-monaco';
@@ -90,7 +90,7 @@ export const RoomPage = () => {
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
 
-  const guestUser = React.useMemo(() => {
+  const guestUser = useMemo(() => {
     if (user) return null;
     try {
       const stored = localStorage.getItem('codesync_guest_user');
