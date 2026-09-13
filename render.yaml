@@ -18,10 +18,6 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: JUDGE0_BASE_URL
-        value: https://judge0-ce.p.rapidapi.com
-      - key: JUDGE0_API_KEY
-        sync: false
-      - key: JUDGE0_HOST
-        value: judge0-ce.p.rapidapi.com
+        value: https://ce.judge0.com
       - key: COOKIE_SECURE
         value: "true"

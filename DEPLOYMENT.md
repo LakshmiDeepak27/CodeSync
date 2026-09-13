@@ -36,23 +36,22 @@ If you need a free hosted MySQL 8.0 compatible cloud database:
 
 ---
 
-## 3. Step 2: Judge0 Execution Engine Setup (Free Tier)
+## 3. Step 2: Judge0 Execution Engine Setup (100% Free — No Credit Card Needed)
 
-To compile and run C++, Python, JavaScript, and other languages without running local sandbox containers:
+You do **NOT** need to pay for Judge0 or provide a credit card on RapidAPI. You can use the official public **Judge0 Community Edition** server:
 
-1. Create a free account on [RapidAPI](https://rapidapi.com).
-2. Visit the [Judge0 CE on RapidAPI](https://rapidapi.com/judge0-official/api/judge0-ce).
-3. Subscribe to the **Basic Plan** ($0.00 / month — includes free daily submissions).
-4. Copy your `X-RapidAPI-Key` from the RapidAPI console.
-5. Your Judge0 configuration is:
-   ```env
-   JUDGE0_BASE_URL="https://judge0-ce.p.rapidapi.com"
-   JUDGE0_API_KEY="<your-rapidapi-key>"
-   JUDGE0_HOST="judge0-ce.p.rapidapi.com"
-   ```
+```env
+JUDGE0_BASE_URL="https://ce.judge0.com"
+```
 
-> [!TIP]
-> If you already have your own hosted Judge0 server, simply provide your base URL (e.g., `https://judge0.yourdomain.com`) and omit or configure the API key.
+- **Cost**: $0.00 (Completely Free)
+- **Credit Card**: None required
+- **Sign-up**: None required
+- **Supported Languages**: C++, C, Python, JavaScript, and more!
+
+> [!NOTE]
+> When using `https://ce.judge0.com`, you leave `JUDGE0_API_KEY` and `JUDGE0_HOST` empty or omit them entirely!
+
 
 ---
 
@@ -92,9 +91,8 @@ In the **Environment Variables** tab, add the following:
 | `DATABASE_URL` | `<your-mysql-connection-string>` | MySQL or TiDB connection string |
 | `JWT_SECRET` | `<random-64-character-secret>` | Secret for authentication tokens |
 | `JWT_EXPIRES_IN` | `7d` | Token expiry duration |
-| `JUDGE0_BASE_URL` | `https://judge0-ce.p.rapidapi.com` | Hosted Judge0 endpoint |
-| `JUDGE0_API_KEY` | `<your-rapidapi-key>` | Your RapidAPI key |
-| `JUDGE0_HOST` | `judge0-ce.p.rapidapi.com` | RapidAPI host header |
+| `JUDGE0_BASE_URL` | `https://ce.judge0.com` | Official free Judge0 server |
+| `JUDGE0_API_KEY` | *(leave empty)* | Not required for `ce.judge0.com` |
 | `COOKIE_SECURE` | `true` | Enforces HTTPS-only cookies |
 | `CLIENT_URL` | `https://<your-render-app-name>.onrender.com` | Your Render public URL |
 | `SERVER_URL` | `https://<your-render-app-name>.onrender.com` | Same as CLIENT_URL in unified mode |
