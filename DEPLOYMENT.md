@@ -73,7 +73,7 @@ Make sure your CodeSync code is pushed to your GitHub account.
    - **Runtime**: `Node`
    - **Build Command**:
      ```bash
-     npm install && npm run build
+     npm install --include=dev && npm run build
      ```
    - **Start Command**:
      ```bash
