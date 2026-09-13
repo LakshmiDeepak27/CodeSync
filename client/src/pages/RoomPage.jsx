@@ -110,6 +110,19 @@ export const RoomPage = () => {
   // Resonyx Yjs collaboration provider
   const { ydoc, yFiles, yFolders, synced, users, isConnected, provider } = useYjs(roomId, username);
 
+  // Track yFiles mutations reactively so RoomPage re-evaluates activeFile and Monaco bindings
+  const [filesVersion, setFilesVersion] = useState(0);
+  useEffect(() => {
+    if (!yFiles) return;
+    const handleYFilesChange = () => {
+      setFilesVersion((v) => v + 1);
+    };
+    yFiles.observe(handleYFilesChange);
+    return () => {
+      yFiles.unobserve(handleYFilesChange);
+    };
+  }, [yFiles]);
+
   const [room, setRoom] = useState(null);
   const [activeFile, setActiveFile] = useState('main.cpp');
   const [openFiles, setOpenFiles] = useState(['main.cpp']);
@@ -703,18 +716,7 @@ export const RoomPage = () => {
     }
   }, [theme, monaco]);
 
-  // Track yFiles mutations reactively so RoomPage re-evaluates activeFile and Monaco bindings
-  const [filesVersion, setFilesVersion] = useState(0);
-  useEffect(() => {
-    if (!yFiles) return;
-    const handleYFilesChange = () => {
-      setFilesVersion((v) => v + 1);
-    };
-    yFiles.observe(handleYFilesChange);
-    return () => {
-      yFiles.unobserve(handleYFilesChange);
-    };
-  }, [yFiles]);
+
 
   // Inject dynamic styles for collaborator cursors and name badges
   useEffect(() => {
