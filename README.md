@@ -145,6 +145,8 @@ npm run dev
 | `DATABASE_URL` | MySQL connection string | `mysql://root:codesyncpassword@localhost:3308/codesync` |
 | `JWT_SECRET` | Secret key for signing authentication tokens | *Set secure string* |
 | `JWT_EXPIRES_IN` | Token duration | `7d` |
+| `EMAIL_USER` | Gmail address for verification codes | `connectto.peers@gmail.com` |
+| `EMAIL_PASS` | Gmail 16-character App Password | `<app-password>` |
 | `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID | |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Client Secret | |
 | `GOOGLE_CALLBACK_URL` | OAuth redirect URI | `http://localhost:5000/api/auth/google/callback` |

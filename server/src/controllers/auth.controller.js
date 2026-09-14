@@ -14,13 +14,12 @@ const getCookieOptions = (req) => {
 export class AuthController {
   static async register(req, res, next) {
     try {
-      const { user, token } = await AuthService.register(req.body);
-      res.cookie('token', token, getCookieOptions(req));
+      const result = await AuthService.register(req.body);
       res.status(201).json({
         success: true,
-        message: 'Account created successfully.',
-        token,
-        user
+        requiresVerification: true,
+        email: result.email,
+        message: result.message
       });
     } catch (error) {
       next(error);
@@ -38,6 +37,14 @@ export class AuthController {
         user
       });
     } catch (error) {
+      if (error.requiresVerification) {
+        return res.status(403).json({
+          success: false,
+          requiresVerification: true,
+          email: error.email,
+          message: error.message
+        });
+      }
       next(error);
     }
   }
@@ -113,6 +120,19 @@ export class AuthController {
     try {
       const { email, code } = req.body;
       const result = await AuthService.verifyEmail(email, code);
+      if (result.token) {
+        res.cookie('token', result.token, getCookieOptions(req));
+      }
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resendVerification(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await AuthService.resendVerificationCode(email);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -120,20 +140,7 @@ export class AuthController {
   }
 
   static async googleAuth(req, res) {
-    const clientOrigin = req.headers.referer ? new URL(req.headers.referer).origin : (req.headers.origin || ENV.CLIENT_URL);
-    if (!ENV.GOOGLE_CLIENT_ID || ENV.GOOGLE_CLIENT_ID.startsWith('mock') || !ENV.GOOGLE_CLIENT_SECRET || ENV.GOOGLE_CLIENT_SECRET === 'mock-google-client-secret') {
-      const mockGoogleUser = {
-        googleId: `google_dev_${Date.now()}`,
-        email: 'developer@codesync.dev',
-        name: 'CodeSync Developer',
-        avatarUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=dev'
-      };
-      const { user, token } = await AuthService.handleGoogleUser(mockGoogleUser);
-      res.cookie('token', token, getCookieOptions(req));
-      return res.redirect(`${clientOrigin}/dashboard`);
-    }
-
-    // Generate Google OAuth URL
+    // Generate Google OAuth URL with user's client ID
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const options = {
       redirect_uri: ENV.GOOGLE_CALLBACK_URL,
@@ -156,22 +163,10 @@ export class AuthController {
     try {
       const { code } = req.query;
       if (!code) {
-        return res.redirect(`${clientOrigin}/login?error=Google+auth+cancelled`);
+        return res.redirect(`${clientOrigin}/login?error=Google+authentication+was+cancelled`);
       }
 
-      if (!ENV.GOOGLE_CLIENT_SECRET || ENV.GOOGLE_CLIENT_SECRET === 'mock-google-client-secret') {
-        const mockGoogleUser = {
-          googleId: `google_dev_${Date.now()}`,
-          email: 'developer@codesync.dev',
-          name: 'CodeSync Developer',
-          avatarUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=dev'
-        };
-        const { user, token } = await AuthService.handleGoogleUser(mockGoogleUser);
-        res.cookie('token', token, getCookieOptions(req));
-        return res.redirect(`${clientOrigin}/dashboard`);
-      }
-
-      // Exchange code with Google
+      // Exchange code with Google OAuth token endpoint
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -186,10 +181,11 @@ export class AuthController {
 
       const tokenData = await tokenResponse.json();
       if (!tokenData.access_token) {
-        return res.redirect(`${ENV.CLIENT_URL}/login?error=Failed+to+authenticate+with+Google`);
+        console.error('Google OAuth token exchange error:', tokenData);
+        return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent(tokenData.error_description || 'Failed to authenticate with Google')}`);
       }
 
-      // Fetch user profile from Google
+      // Fetch user profile from Google userinfo API
       const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` }
       });
@@ -203,10 +199,11 @@ export class AuthController {
       });
 
       res.cookie('token', token, getCookieOptions(req));
-      res.redirect(`${ENV.CLIENT_URL}/dashboard`);
+      // Redirect to dashboard with token param for cross-origin or local storage support
+      res.redirect(`${ENV.CLIENT_URL}/dashboard?token=${encodeURIComponent(token)}`);
     } catch (error) {
       console.error('Google OAuth callback error:', error);
-      res.redirect(`${ENV.CLIENT_URL}/login?error=Authentication+failed`);
+      res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent(error.message || 'Authentication failed')}`);
     }
   }
 }

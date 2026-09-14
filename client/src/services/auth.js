@@ -1,5 +1,16 @@
 import { api } from './api.js';
 
+const getAuthBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (import.meta.env.VITE_SERVER_URL) {
+    const cleanUrl = import.meta.env.VITE_SERVER_URL.replace(/\/+$/, '');
+    return `${cleanUrl}/api`;
+  }
+  return '/api';
+};
+
 export const authService = {
   async register(data) {
     const res = await api.post('/auth/register', data);
@@ -41,7 +52,12 @@ export const authService = {
     return res.data;
   },
 
+  async resendVerification(email) {
+    const res = await api.post('/auth/resend-verification', { email });
+    return res.data;
+  },
+
   getGoogleAuthUrl() {
-    return '/api/auth/google';
+    return `${getAuthBaseUrl()}/auth/google`;
   }
 };

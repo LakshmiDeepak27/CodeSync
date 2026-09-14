@@ -15,6 +15,7 @@ router.put('/profile', requireAuth, AuthController.updateProfile);
 router.post('/forgot-password', AuthController.requestPasswordReset);
 router.post('/reset-password', AuthController.resetPassword);
 router.post('/verify-email', AuthController.verifyEmail);
+router.post('/resend-verification', authRateLimiter, AuthController.resendVerification);
 
 // Google OAuth routes
 router.get('/google', AuthController.googleAuth);

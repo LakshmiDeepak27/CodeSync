@@ -24,10 +24,13 @@ model User {
   username     String       @unique
   email        String       @unique
   passwordHash String?
-  avatarUrl    String?      @db.VarChar(500)
-  googleId     String?      @unique
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  avatarUrl                  String?       @db.VarChar(500)
+  googleId                   String?       @unique
+  isVerified                 Boolean       @default(false)
+  verificationCode           String?       @db.VarChar(10)
+  verificationCodeExpiresAt  DateTime?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
 
   ownedRooms   Room[]       @relation("RoomOwner")
   memberships  RoomMember[]

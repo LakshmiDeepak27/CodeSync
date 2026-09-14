@@ -10,6 +10,22 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
+      // Check if redirected with ?token= (e.g. from Google OAuth callback)
+      if (typeof window !== 'undefined' && window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('token');
+        if (urlToken) {
+          try {
+            localStorage.setItem('codesync_token', urlToken);
+          } catch {}
+          // Clean the token from the URL without triggering a reload
+          urlParams.delete('token');
+          const cleanSearch = urlParams.toString();
+          const cleanUrl = `${window.location.pathname}${cleanSearch ? `?${cleanSearch}` : ''}`;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
+
       const currentUser = await authService.getMe();
       setUser(currentUser);
     } catch {
@@ -28,9 +44,7 @@ export const AuthProvider = ({ children }) => {
     if (res.token) {
       try {
         localStorage.setItem('codesync_token', res.token);
-      } catch {
-        // LocalStorage restricted
-      }
+      } catch {}
     }
     setUser(res.user);
     return res;
@@ -41,12 +55,27 @@ export const AuthProvider = ({ children }) => {
     if (res.token) {
       try {
         localStorage.setItem('codesync_token', res.token);
-      } catch {
-        // LocalStorage restricted
-      }
+      } catch {}
+      setUser(res.user);
     }
-    setUser(res.user);
     return res;
+  };
+
+  const verifyEmail = async (email, code) => {
+    const res = await authService.verifyEmail(email, code);
+    if (res.token) {
+      try {
+        localStorage.setItem('codesync_token', res.token);
+      } catch {}
+    }
+    if (res.user) {
+      setUser(res.user);
+    }
+    return res;
+  };
+
+  const resendVerification = async (email) => {
+    return authService.resendVerification(email);
   };
 
   const logout = async () => {
@@ -55,9 +84,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       try {
         localStorage.removeItem('codesync_token');
-      } catch {
-        // LocalStorage restricted
-      }
+      } catch {}
       disconnectSocket();
       setUser(null);
     }
@@ -68,16 +95,27 @@ export const AuthProvider = ({ children }) => {
     if (res.token) {
       try {
         localStorage.setItem('codesync_token', res.token);
-      } catch {
-        // LocalStorage restricted
-      }
+      } catch {}
     }
     setUser(res.user);
     return res.user;
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, refreshUser: fetchUser, setUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        verifyEmail,
+        resendVerification,
+        logout,
+        updateProfile,
+        refreshUser: fetchUser,
+        setUser
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

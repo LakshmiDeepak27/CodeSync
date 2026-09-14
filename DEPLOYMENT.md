@@ -96,6 +96,10 @@ In the **Environment Variables** tab, add the following:
 | `COOKIE_SECURE` | `true` | Enforces HTTPS-only cookies |
 | `CLIENT_URL` | `https://<your-render-app-name>.onrender.com` | Your Render public URL |
 | `SERVER_URL` | `https://<your-render-app-name>.onrender.com` | Same as CLIENT_URL in unified mode |
+| `EMAIL_USER` | `<your-gmail-address>` | Gmail account for verification emails (e.g. `connectto.peers@gmail.com`) |
+| `EMAIL_PASS` | `<your-gmail-app-password>` | Gmail 16-character App Password |
+| `GOOGLE_CLIENT_ID` | `<your-google-client-id>` | Google OAuth Client ID |
+| `GOOGLE_CLIENT_SECRET` | `<your-google-client-secret>` | Google OAuth Client Secret |
 
 ### 4. Deploy!
 Click **Create Web Service**. Render will:
