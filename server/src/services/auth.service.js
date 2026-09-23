@@ -32,20 +32,18 @@ export class AuthService {
   static async register({ name, username, email, password }) {
     const normalizedEmail = (email || '').trim().toLowerCase();
     const existingEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    const verificationCode = this.generateVerificationCode();
-    const verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
     const passwordHash = await this.hashPassword(password);
 
     if (existingEmail) {
-      // If user exists, update password and mark verified for seamless login
+      // If user exists, update password and ensure verified for direct login
       const updatedUser = await prisma.user.update({
         where: { id: existingEmail.id },
         data: {
           name: name || existingEmail.name,
           passwordHash,
           isVerified: true,
-          verificationCode,
-          verificationCodeExpiresAt
+          verificationCode: null,
+          verificationCodeExpiresAt: null
         },
         select: {
           id: true,
@@ -58,20 +56,14 @@ export class AuthService {
         }
       });
 
-      console.log(`[AuthService] Updated and verified user: ${normalizedEmail}`);
-
-      // Send verification/welcome email non-blocking in background
-      EmailService.sendVerificationEmail(normalizedEmail, verificationCode, updatedUser.name).catch((err) => {
-        console.warn('[AuthService] Non-blocking email notice:', err.message);
-      });
-
+      console.log(`[AuthService] Updated user: ${normalizedEmail}`);
       const token = this.generateToken(updatedUser);
 
       return {
         success: true,
         user: updatedUser,
         token,
-        message: 'Account updated and signed in successfully!'
+        message: 'Signed in successfully!'
       };
     }
 
@@ -100,8 +92,8 @@ export class AuthService {
         email: normalizedEmail,
         passwordHash,
         isVerified: true,
-        verificationCode,
-        verificationCodeExpiresAt,
+        verificationCode: null,
+        verificationCodeExpiresAt: null,
         avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(finalUsername)}`
       },
       select: {
@@ -115,13 +107,7 @@ export class AuthService {
       }
     });
 
-    console.log(`[AuthService] Registered and verified user: ${normalizedEmail}`);
-
-    // Send email non-blocking in background
-    EmailService.sendVerificationEmail(normalizedEmail, verificationCode, user.name || finalUsername).catch((err) => {
-      console.warn('[AuthService] Non-blocking email notice:', err.message);
-    });
-
+    console.log(`[AuthService] Registered user: ${normalizedEmail}`);
     const token = this.generateToken(user);
 
     return {

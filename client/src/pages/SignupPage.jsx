@@ -68,7 +68,7 @@ export const SignupPage = () => {
   };
 
   return (
-    <AuthFrame title="Create your account" subtitle="Verify your Gmail and join real-time collaborative rooms.">
+    <AuthFrame title="Create your account" subtitle="Join real-time collaborative coding rooms with your team.">
       <div className="auth-card auth-card-wide">
         {error && (
           <div className="auth-error">
@@ -119,7 +119,7 @@ export const SignupPage = () => {
               type="email"
               value={form.email}
               onChange={update}
-              placeholder="Enter your Gmail address"
+              placeholder="Enter your email address"
             />
           </AuthField>
 
