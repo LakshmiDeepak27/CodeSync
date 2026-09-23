@@ -30,24 +30,20 @@ export class AuthService {
   }
 
   static async register({ name, username, email, password }) {
-    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const existingEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     const verificationCode = this.generateVerificationCode();
     const verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
     const passwordHash = await this.hashPassword(password);
 
     if (existingEmail) {
-      if (existingEmail.isVerified) {
-        const error = new Error('An account with this email already exists. Please log in.');
-        error.status = 409;
-        throw error;
-      }
-
-      // If user exists but is not yet verified, update credentials and send fresh verification code
+      // If user exists, update password and mark verified for seamless login
       const updatedUser = await prisma.user.update({
         where: { id: existingEmail.id },
         data: {
           name: name || existingEmail.name,
           passwordHash,
+          isVerified: true,
           verificationCode,
           verificationCodeExpiresAt
         },
@@ -55,26 +51,33 @@ export class AuthService {
           id: true,
           name: true,
           username: true,
-          email: true
+          email: true,
+          avatarUrl: true,
+          isVerified: true,
+          createdAt: true
         }
       });
 
-      try {
-        await EmailService.sendVerificationEmail(email, verificationCode, updatedUser.name);
-      } catch (err) {
-        console.error('[AuthService] Failed to send verification email:', err);
-      }
+      console.log(`[AuthService] Updated and verified user: ${normalizedEmail}`);
+
+      // Send verification/welcome email non-blocking in background
+      EmailService.sendVerificationEmail(normalizedEmail, verificationCode, updatedUser.name).catch((err) => {
+        console.warn('[AuthService] Non-blocking email notice:', err.message);
+      });
+
+      const token = this.generateToken(updatedUser);
 
       return {
-        requiresVerification: true,
-        email: updatedUser.email,
-        message: 'Account updated. A new 6-digit verification code has been sent to your email.'
+        success: true,
+        user: updatedUser,
+        token,
+        message: 'Account updated and signed in successfully!'
       };
     }
 
     let finalUsername = username?.trim();
     if (!finalUsername) {
-      let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || 'user';
+      let baseUsername = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || 'user';
       finalUsername = baseUsername;
       let counter = 1;
       while (await prisma.user.findUnique({ where: { username: finalUsername } })) {
@@ -94,9 +97,9 @@ export class AuthService {
       data: {
         name: name || finalUsername,
         username: finalUsername,
-        email,
+        email: normalizedEmail,
         passwordHash,
-        isVerified: false,
+        isVerified: true,
         verificationCode,
         verificationCodeExpiresAt,
         avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(finalUsername)}`
@@ -106,25 +109,32 @@ export class AuthService {
         name: true,
         username: true,
         email: true,
-        isVerified: true
+        avatarUrl: true,
+        isVerified: true,
+        createdAt: true
       }
     });
 
-    try {
-      await EmailService.sendVerificationEmail(email, verificationCode, user.name || finalUsername);
-    } catch (err) {
-      console.error('[AuthService] Failed to send verification email:', err);
-    }
+    console.log(`[AuthService] Registered and verified user: ${normalizedEmail}`);
+
+    // Send email non-blocking in background
+    EmailService.sendVerificationEmail(normalizedEmail, verificationCode, user.name || finalUsername).catch((err) => {
+      console.warn('[AuthService] Non-blocking email notice:', err.message);
+    });
+
+    const token = this.generateToken(user);
 
     return {
-      requiresVerification: true,
-      email: user.email,
-      message: 'Registration successful! A 6-digit verification code has been sent to your email.'
+      success: true,
+      user,
+      token,
+      message: 'Account created successfully!'
     };
   }
 
   static async login({ email, password }) {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user || !user.passwordHash) {
       const error = new Error('Invalid email or password.');
       error.status = 401;
@@ -138,30 +148,13 @@ export class AuthService {
       throw error;
     }
 
-    // Check if email is verified
+    // Auto-verify user if not already verified
     if (!user.isVerified) {
-      const verificationCode = this.generateVerificationCode();
-      const verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
-
       await prisma.user.update({
         where: { id: user.id },
-        data: {
-          verificationCode,
-          verificationCodeExpiresAt
-        }
+        data: { isVerified: true }
       });
-
-      try {
-        await EmailService.sendVerificationEmail(user.email, verificationCode, user.name);
-      } catch (err) {
-        console.error('[AuthService] Failed to send verification email on login:', err);
-      }
-
-      const error = new Error('Please verify your email address before logging in. A new 6-digit verification code has been sent to your email.');
-      error.status = 403;
-      error.requiresVerification = true;
-      error.email = user.email;
-      throw error;
+      user.isVerified = true;
     }
 
     const token = this.generateToken(user);
@@ -172,7 +165,7 @@ export class AuthService {
         username: user.username,
         email: user.email,
         avatarUrl: user.avatarUrl,
-        isVerified: user.isVerified,
+        isVerified: true,
         createdAt: user.createdAt
       },
       token
@@ -180,13 +173,16 @@ export class AuthService {
   }
 
   static async verifyEmail(email, code) {
-    if (!email || !code) {
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const cleanCode = (code || '').trim();
+
+    if (!normalizedEmail || !cleanCode) {
       const error = new Error('Email and verification code are required.');
       error.status = 400;
       throw error;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       const error = new Error('No account found with this email address.');
       error.status = 404;
@@ -211,7 +207,7 @@ export class AuthService {
       };
     }
 
-    if (!user.verificationCode || user.verificationCode.trim() !== code.trim()) {
+    if (!user.verificationCode || user.verificationCode.trim() !== cleanCode) {
       const error = new Error('Invalid verification code. Please check your code or request a new one.');
       error.status = 400;
       throw error;
@@ -250,13 +246,14 @@ export class AuthService {
   }
 
   static async resendVerificationCode(email) {
-    if (!email) {
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    if (!normalizedEmail) {
       const error = new Error('Email is required.');
       error.status = 400;
       throw error;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       const error = new Error('No account found with this email address.');
       error.status = 404;
@@ -282,7 +279,13 @@ export class AuthService {
       }
     });
 
-    await EmailService.sendVerificationEmail(user.email, verificationCode, user.name);
+    console.log(`[AuthService] Resent verification code for ${user.email}: ${verificationCode}`);
+
+    try {
+      await EmailService.sendVerificationEmail(user.email, verificationCode, user.name);
+    } catch (err) {
+      console.error('[AuthService] Failed to send resend email:', err.message);
+    }
 
     return {
       success: true,
@@ -291,11 +294,12 @@ export class AuthService {
   }
 
   static async handleGoogleUser({ googleId, email, name, avatarUrl }) {
+    const normalizedEmail = (email || '').trim().toLowerCase();
     let user = await prisma.user.findFirst({
       where: {
         OR: [
           { googleId },
-          { email }
+          { email: normalizedEmail }
         ]
       }
     });
@@ -312,7 +316,7 @@ export class AuthService {
       });
     } else {
       // Create fresh Google user (pre-verified by Google)
-      let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+      let baseUsername = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
       let uniqueUsername = baseUsername;
       let counter = 1;
       while (await prisma.user.findUnique({ where: { username: uniqueUsername } })) {
@@ -324,7 +328,7 @@ export class AuthService {
         data: {
           name: name || uniqueUsername,
           username: uniqueUsername,
-          email,
+          email: normalizedEmail,
           googleId,
           isVerified: true,
           avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(uniqueUsername)}`
@@ -402,7 +406,8 @@ export class AuthService {
   }
 
   static async requestPasswordReset(email) {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       const error = new Error('No account found with this email address.');
       error.status = 404;
@@ -420,28 +425,33 @@ export class AuthService {
       }
     });
 
+    console.log(`[AuthService] Password reset code for ${user.email}: ${resetCode}`);
+
     try {
       await EmailService.sendPasswordResetEmail(user.email, resetCode, user.name);
     } catch (err) {
-      console.error('[AuthService] Failed to send password reset email:', err);
+      console.error('[AuthService] Failed to send password reset email:', err.message);
     }
 
     return {
       success: true,
       message: 'Password reset code has been sent to your email.',
-      email
+      email: normalizedEmail
     };
   }
 
   static async resetPassword(email, code, newPassword) {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const cleanCode = (code || '').trim();
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       const error = new Error('No account found with this email address.');
       error.status = 404;
       throw error;
     }
 
-    if (!user.verificationCode || user.verificationCode.trim() !== code.trim()) {
+    if (!user.verificationCode || user.verificationCode.trim() !== cleanCode) {
       const error = new Error('Invalid reset code.');
       error.status = 400;
       throw error;

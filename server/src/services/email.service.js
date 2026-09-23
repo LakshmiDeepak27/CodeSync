@@ -9,11 +9,17 @@ class EmailServiceClass {
   getTransporter() {
     if (!this.transporter) {
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        family: 4, // Force IPv4 to prevent ENETUNREACH on IPv6-unsupported networks
         auth: {
           user: ENV.EMAIL_USER,
           pass: ENV.EMAIL_PASS
-        }
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000
       });
     }
     return this.transporter;

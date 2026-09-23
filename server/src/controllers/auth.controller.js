@@ -15,11 +15,14 @@ export class AuthController {
   static async register(req, res, next) {
     try {
       const result = await AuthService.register(req.body);
+      if (result.token) {
+        res.cookie('token', result.token, getCookieOptions(req));
+      }
       res.status(201).json({
         success: true,
-        requiresVerification: true,
-        email: result.email,
-        message: result.message
+        message: result.message || 'Registered successfully.',
+        token: result.token,
+        user: result.user
       });
     } catch (error) {
       next(error);

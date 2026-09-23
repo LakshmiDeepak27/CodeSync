@@ -22,22 +22,26 @@ export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(new URLSearchParams(location.search).get('error') || '');
-  const [needsVerification, setNeedsVerification] = useState(false);
+  const urlError = new URLSearchParams(location.search).get('error') || '';
+  const [error, setError] = useState(urlError);
+  const [needsVerification, setNeedsVerification] = useState(
+    urlError.toLowerCase().includes('verify') || urlError.toLowerCase().includes('verification')
+  );
 
   const submit = async (event) => {
     event.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
     try {
       setLoading(true);
       setError('');
       setNeedsVerification(false);
-      await login({ email, password });
+      await login({ email: cleanEmail, password });
       const redirect = new URLSearchParams(location.search).get('redirect') || '/dashboard';
       navigate(redirect);
     } catch (err) {
       const errMsg = err.message || 'Invalid email or password';
       setError(errMsg);
-      if (errMsg.toLowerCase().includes('verify') || errMsg.toLowerCase().includes('verification')) {
+      if (err.requiresVerification || errMsg.toLowerCase().includes('verify') || errMsg.toLowerCase().includes('verification')) {
         setNeedsVerification(true);
       }
     } finally {
@@ -50,16 +54,16 @@ export const LoginPage = () => {
       <div className="auth-card">
         {error && (
           <div className="auth-error">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <div className="flex-1">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1 text-left">
               <span>{error}</span>
               {needsVerification && (
-                <div className="mt-2">
+                <div className="mt-2 pt-2 border-t border-rose-500/20">
                   <Link
-                    to={`/verify-email?email=${encodeURIComponent(email)}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#84dfff] underline hover:text-white"
+                    to={`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#84dfff] hover:text-white transition"
                   >
-                    <MailCheck className="h-3.5 w-3.5" /> Enter verification code now &rarr;
+                    <MailCheck className="h-3.5 w-3.5" /> Enter 6-digit verification code now &rarr;
                   </Link>
                 </div>
               )}
