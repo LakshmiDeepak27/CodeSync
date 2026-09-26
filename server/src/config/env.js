@@ -34,6 +34,7 @@ export const ENV = {
   EMAIL_USER: cleanEnvStr(process.env.EMAIL_USER, 'connectto.peers@gmail.com'),
   EMAIL_PASS: cleanEnvStr(process.env.EMAIL_PASS, 'zxtmuhthqhdtkdgq'),
   RESEND_API_KEY: cleanEnvStr(process.env.RESEND_API_KEY, ''),
+  BREVO_API_KEY: cleanEnvStr(process.env.BREVO_API_KEY, ''),
   GOOGLE_CLIENT_ID: cleanEnvStr(process.env.GOOGLE_CLIENT_ID, ''),
   GOOGLE_CLIENT_SECRET: cleanEnvStr(process.env.GOOGLE_CLIENT_SECRET, ''),
   GOOGLE_CALLBACK_URL: cleanEnvStr(process.env.GOOGLE_CALLBACK_URL, 'http://localhost:5000/api/auth/google/callback'),

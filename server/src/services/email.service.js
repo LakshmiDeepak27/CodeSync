@@ -121,6 +121,66 @@ class EmailServiceClass {
       `
     };
 
+    // 1. Try Resend HTTP API (HTTPS port 443 - immune to Render SMTP block)
+    if (ENV.RESEND_API_KEY) {
+      try {
+        console.log(`[EmailService] Dispatching via Resend HTTP API to ${toEmail}...`);
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ENV.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'CodeSync <onboarding@resend.dev>',
+            to: [toEmail],
+            subject: `CodeSync Verification Code: ${code}`,
+            html: mailOptions.html
+          })
+        });
+        const resData = await res.json();
+        if (res.ok) {
+          console.log(`[EmailService] ✅ Resend delivered successfully to ${toEmail}:`, resData.id);
+          return { success: true, messageId: resData.id, code };
+        } else {
+          console.warn('[EmailService] Resend returned error:', resData);
+        }
+      } catch (httpErr) {
+        console.warn('[EmailService] Resend HTTP call failed:', httpErr.message);
+      }
+    }
+
+    // 2. Try Brevo HTTP API (HTTPS port 443)
+    if (ENV.BREVO_API_KEY) {
+      try {
+        console.log(`[EmailService] Dispatching via Brevo HTTP API to ${toEmail}...`);
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': ENV.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: 'CodeSync Security', email: emailUser },
+            to: [{ email: toEmail }],
+            subject: `CodeSync Verification Code: ${code}`,
+            htmlContent: mailOptions.html
+          })
+        });
+        const resData = await res.json();
+        if (res.ok) {
+          console.log(`[EmailService] ✅ Brevo delivered successfully to ${toEmail}:`, resData.messageId);
+          return { success: true, messageId: resData.messageId, code };
+        } else {
+          console.warn('[EmailService] Brevo returned error:', resData);
+        }
+      } catch (httpErr) {
+        console.warn('[EmailService] Brevo HTTP call failed:', httpErr.message);
+      }
+    }
+
+    // 3. Fallback to Gmail SMTP (Works locally or on paid cloud tier; blocked on Render Free)
     try {
       const info = await transporter.sendMail(mailOptions);
       console.log(`[EmailService] Verification email delivered to ${toEmail}:`, info.messageId);
@@ -179,6 +239,62 @@ class EmailServiceClass {
       `
     };
 
+    // 1. Try Resend HTTP API (HTTPS port 443)
+    if (ENV.RESEND_API_KEY) {
+      try {
+        console.log(`[EmailService] Dispatching password reset via Resend HTTP API to ${toEmail}...`);
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ENV.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'CodeSync <onboarding@resend.dev>',
+            to: [toEmail],
+            subject: `CodeSync Password Reset Code: ${code}`,
+            html: mailOptions.html
+          })
+        });
+        const resData = await res.json();
+        if (res.ok) {
+          console.log(`[EmailService] ✅ Resend password reset delivered to ${toEmail}:`, resData.id);
+          return { success: true, messageId: resData.id, code };
+        }
+      } catch (httpErr) {
+        console.warn('[EmailService] Resend HTTP call failed:', httpErr.message);
+      }
+    }
+
+    // 2. Try Brevo HTTP API (HTTPS port 443)
+    if (ENV.BREVO_API_KEY) {
+      try {
+        console.log(`[EmailService] Dispatching password reset via Brevo HTTP API to ${toEmail}...`);
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': ENV.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: 'CodeSync Security', email: emailUser },
+            to: [{ email: toEmail }],
+            subject: `CodeSync Password Reset Code: ${code}`,
+            htmlContent: mailOptions.html
+          })
+        });
+        const resData = await res.json();
+        if (res.ok) {
+          console.log(`[EmailService] ✅ Brevo password reset delivered to ${toEmail}:`, resData.messageId);
+          return { success: true, messageId: resData.messageId, code };
+        }
+      } catch (httpErr) {
+        console.warn('[EmailService] Brevo HTTP call failed:', httpErr.message);
+      }
+    }
+
+    // 3. Fallback to Gmail SMTP
     try {
       const info = await transporter.sendMail(mailOptions);
       console.log(`[EmailService] Password reset email delivered to ${toEmail}:`, info.messageId);
