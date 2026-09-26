@@ -8,14 +8,19 @@ class EmailServiceClass {
 
   getTransporter() {
     if (!this.transporter) {
+      const emailUser = (ENV.EMAIL_USER || '').trim();
+      const emailPass = (ENV.EMAIL_PASS || '').trim().replace(/\s+/g, '');
+
+      if (!emailUser || !emailPass) {
+        console.warn('[EmailService] EMAIL_USER or EMAIL_PASS not configured in environment variables.');
+        return null;
+      }
+
       this.transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        family: 4, // Force IPv4 to prevent ENETUNREACH on IPv6-unsupported networks
+        service: 'gmail',
         auth: {
-          user: ENV.EMAIL_USER,
-          pass: ENV.EMAIL_PASS
+          user: emailUser,
+          pass: emailPass
         },
         connectionTimeout: 10000,
         greetingTimeout: 10000,
@@ -29,7 +34,16 @@ class EmailServiceClass {
    * Send 6-digit verification code to user's Gmail
    */
   async sendVerificationEmail(toEmail, code, name = 'Developer') {
+    console.log('====================================================');
+    console.log(`[EmailService] 📩 VERIFICATION OTP for ${toEmail}: ${code}`);
+    console.log('====================================================');
+
     const transporter = this.getTransporter();
+    if (!transporter) {
+      console.warn(`[EmailService] SMTP not configured. OTP logged to console: ${code}`);
+      return { skipped: true, code };
+    }
+
     const verifyUrl = `${ENV.CLIENT_URL}/verify-email?email=${encodeURIComponent(toEmail)}&code=${code}`;
 
     const mailOptions = {
@@ -112,7 +126,15 @@ class EmailServiceClass {
    * Send 6-digit password reset code to user's Gmail
    */
   async sendPasswordResetEmail(toEmail, code, name = 'Developer') {
+    console.log('====================================================');
+    console.log(`[EmailService] 🔑 PASSWORD RESET OTP for ${toEmail}: ${code}`);
+    console.log('====================================================');
+
     const transporter = this.getTransporter();
+    if (!transporter) {
+      console.warn(`[EmailService] SMTP not configured. OTP logged to console: ${code}`);
+      return { skipped: true, code };
+    }
 
     const mailOptions = {
       from: `"CodeSync Security" <${ENV.EMAIL_USER}>`,

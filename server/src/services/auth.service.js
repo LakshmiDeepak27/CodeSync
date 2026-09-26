@@ -67,14 +67,7 @@ export class AuthService {
 
       console.log(`[AuthService] Re-sending verification code for unverified account: ${normalizedEmail}`);
 
-      try {
-        await EmailService.sendVerificationEmail(normalizedEmail, verificationCode, updatedUser.name);
-      } catch (err) {
-        console.error('[AuthService] Failed to send verification email:', err.message);
-        const error = new Error('Failed to send verification email. Please check your email address and try again.');
-        error.status = 500;
-        throw error;
-      }
+      await EmailService.sendVerificationEmail(normalizedEmail, verificationCode, updatedUser.name);
 
       return {
         success: true,
@@ -96,9 +89,16 @@ export class AuthService {
     } else {
       const existingUsername = await prisma.user.findUnique({ where: { username: finalUsername } });
       if (existingUsername) {
-        const error = new Error('This username is already taken. Please choose another.');
-        error.status = 409;
-        throw error;
+        if (existingUsername.isVerified) {
+          const error = new Error('This username is already taken. Please choose another.');
+          error.status = 409;
+          throw error;
+        } else {
+          // If a previous unverified attempt used this username, clean it up so user isn't locked out
+          try {
+            await prisma.user.delete({ where: { id: existingUsername.id } });
+          } catch {}
+        }
       }
     }
 
@@ -126,14 +126,7 @@ export class AuthService {
 
     console.log(`[AuthService] Registered user awaiting email verification: ${normalizedEmail}`);
 
-    try {
-      await EmailService.sendVerificationEmail(normalizedEmail, verificationCode, user.name || finalUsername);
-    } catch (err) {
-      console.error('[AuthService] Failed to send verification email:', err.message);
-      const error = new Error('Account was created, but we could not deliver the verification email. Please verify your email or click Resend.');
-      error.status = 500;
-      throw error;
-    }
+    await EmailService.sendVerificationEmail(normalizedEmail, verificationCode, user.name || finalUsername);
 
     return {
       success: true,
