@@ -119,7 +119,15 @@ class EmailServiceClass {
       `
     };
 
-    return transporter.sendMail(mailOptions);
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[EmailService] Verification email delivered to ${toEmail}:`, info.messageId);
+      return { success: true, messageId: info.messageId, code };
+    } catch (err) {
+      console.error(`[EmailService] ❌ Failed to dispatch verification email to ${toEmail}:`, err.message);
+      console.warn(`[EmailService] Fallback OTP for ${toEmail}: ${code}`);
+      return { success: false, error: err.message, code };
+    }
   }
 
   /**
@@ -168,7 +176,15 @@ class EmailServiceClass {
       `
     };
 
-    return transporter.sendMail(mailOptions);
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[EmailService] Password reset email delivered to ${toEmail}:`, info.messageId);
+      return { success: true, messageId: info.messageId, code };
+    } catch (err) {
+      console.error(`[EmailService] ❌ Failed to dispatch reset email to ${toEmail}:`, err.message);
+      console.warn(`[EmailService] Fallback reset OTP for ${toEmail}: ${code}`);
+      return { success: false, error: err.message, code };
+    }
   }
 }
 

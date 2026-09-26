@@ -146,9 +146,23 @@ export const SignupPage = () => {
     >
       <div className="auth-card auth-card-wide">
         {error && (
-          <div className="auth-error">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
+          <div className="auth-error flex flex-col gap-1.5 items-start">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+              <span>{error}</span>
+            </div>
+            {error.toLowerCase().includes('already exists') && (
+              <div className="text-xs text-cyan-300 pl-6 flex items-center gap-2">
+                <span>Already registered?</span>
+                <Link to="/login" className="underline font-semibold hover:text-white">
+                  Log In &rarr;
+                </Link>
+                <span>or</span>
+                <Link to="/forgot-password" className="underline font-semibold hover:text-white">
+                  Reset Password
+                </Link>
+              </div>
+            )}
           </div>
         )}
 

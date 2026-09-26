@@ -45,10 +45,28 @@ export class AuthService {
       }
 
       // If user exists but is NOT verified, update credentials, generate fresh code & send OTP
+      let updatedUsername = existingEmail.username;
+      const cleanUsername = username?.trim();
+      if (cleanUsername && cleanUsername !== existingEmail.username) {
+        const clash = await prisma.user.findUnique({ where: { username: cleanUsername } });
+        if (clash && clash.id !== existingEmail.id) {
+          if (clash.isVerified) {
+            const error = new Error('This username is already taken. Please choose another.');
+            error.status = 409;
+            throw error;
+          } else {
+            // Delete the unverified clash
+            await prisma.user.delete({ where: { id: clash.id } }).catch(() => {});
+          }
+        }
+        updatedUsername = cleanUsername;
+      }
+
       const updatedUser = await prisma.user.update({
         where: { id: existingEmail.id },
         data: {
           name: name || existingEmail.name,
+          username: updatedUsername,
           passwordHash,
           isVerified: false,
           verificationCode,
@@ -102,27 +120,49 @@ export class AuthService {
       }
     }
 
-    const user = await prisma.user.create({
-      data: {
-        name: name || finalUsername,
-        username: finalUsername,
-        email: normalizedEmail,
-        passwordHash,
-        isVerified: false,
-        verificationCode,
-        verificationCodeExpiresAt,
-        avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(finalUsername)}`
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        avatarUrl: true,
-        isVerified: true,
-        createdAt: true
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          name: name || finalUsername,
+          username: finalUsername,
+          email: normalizedEmail,
+          passwordHash,
+          isVerified: false,
+          verificationCode,
+          verificationCodeExpiresAt,
+          avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(finalUsername)}`
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          email: true,
+          avatarUrl: true,
+          isVerified: true,
+          createdAt: true
+        }
+      });
+    } catch (createErr) {
+      if (createErr.code === 'P2002') {
+        const target = createErr.meta?.target || '';
+        const targetStr = Array.isArray(target) ? target.join(', ') : String(target);
+        if (targetStr.includes('email')) {
+          const err = new Error('An account with this email address already exists. Please log in.');
+          err.status = 409;
+          throw err;
+        }
+        if (targetStr.includes('username')) {
+          const err = new Error('This username is already taken. Please choose another.');
+          err.status = 409;
+          throw err;
+        }
+        const err = new Error('An account with these details already exists. Please log in.');
+        err.status = 409;
+        throw err;
       }
-    });
+      throw createErr;
+    }
 
     console.log(`[AuthService] Registered user awaiting email verification: ${normalizedEmail}`);
 
