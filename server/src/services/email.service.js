@@ -8,23 +8,24 @@ class EmailServiceClass {
 
   getTransporter() {
     if (!this.transporter) {
-      const emailUser = (ENV.EMAIL_USER || '').trim();
-      const emailPass = (ENV.EMAIL_PASS || '').trim().replace(/\s+/g, '');
+      const emailUser = (ENV.EMAIL_USER || 'connectto.peers@gmail.com').trim();
+      const emailPass = (ENV.EMAIL_PASS || 'zxtmuhthqhdtkdgq').trim().replace(/\s+/g, '');
 
       if (!emailUser || !emailPass) {
-        console.warn('[EmailService] EMAIL_USER or EMAIL_PASS not configured in environment variables.');
+        console.warn('[EmailService] EMAIL_USER or EMAIL_PASS not configured.');
         return null;
       }
 
+      console.log(`[EmailService] Initializing Gmail SMTP transporter for: ${emailUser}`);
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: emailUser,
           pass: emailPass
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000
       });
     }
     return this.transporter;
@@ -34,8 +35,9 @@ class EmailServiceClass {
    * Send 6-digit verification code to user's Gmail
    */
   async sendVerificationEmail(toEmail, code, name = 'Developer') {
+    const emailUser = (ENV.EMAIL_USER || 'connectto.peers@gmail.com').trim();
     console.log('====================================================');
-    console.log(`[EmailService] 📩 VERIFICATION OTP for ${toEmail}: ${code}`);
+    console.log(`[EmailService] 📩 SENDING OTP to ${toEmail} from ${emailUser}: Code=${code}`);
     console.log('====================================================');
 
     const transporter = this.getTransporter();
@@ -47,7 +49,7 @@ class EmailServiceClass {
     const verifyUrl = `${ENV.CLIENT_URL}/verify-email?email=${encodeURIComponent(toEmail)}&code=${code}`;
 
     const mailOptions = {
-      from: `"CodeSync Security" <${ENV.EMAIL_USER}>`,
+      from: `"CodeSync Security" <${emailUser}>`,
       to: toEmail,
       subject: `CodeSync Verification Code: ${code}`,
       text: `Hello ${name},\n\nYour 6-digit CodeSync verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\nOr verify directly by clicking: ${verifyUrl}\n\nIf you did not request this, please ignore this email.\n\n- The CodeSync Team`,
@@ -134,8 +136,9 @@ class EmailServiceClass {
    * Send 6-digit password reset code to user's Gmail
    */
   async sendPasswordResetEmail(toEmail, code, name = 'Developer') {
+    const emailUser = (ENV.EMAIL_USER || 'connectto.peers@gmail.com').trim();
     console.log('====================================================');
-    console.log(`[EmailService] 🔑 PASSWORD RESET OTP for ${toEmail}: ${code}`);
+    console.log(`[EmailService] 🔑 SENDING PASSWORD RESET OTP to ${toEmail} from ${emailUser}: Code=${code}`);
     console.log('====================================================');
 
     const transporter = this.getTransporter();
@@ -145,7 +148,7 @@ class EmailServiceClass {
     }
 
     const mailOptions = {
-      from: `"CodeSync Security" <${ENV.EMAIL_USER}>`,
+      from: `"CodeSync Security" <${emailUser}>`,
       to: toEmail,
       subject: `CodeSync Password Reset Code: ${code}`,
       text: `Hello ${name},\n\nYour password reset code is: ${code}\n\nThis code will expire in 15 minutes.\n\n- The CodeSync Team`,
