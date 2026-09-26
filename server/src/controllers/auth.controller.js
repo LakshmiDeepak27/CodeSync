@@ -85,11 +85,11 @@ export class AuthController {
   static async me(req, res, next) {
     try {
       if (!req.user) {
-        return res.status(401).json({ success: false, message: 'Not authenticated' });
+        return res.status(200).json({ success: true, user: null });
       }
       const user = await AuthService.getCurrentUser(req.user.userId);
       if (!user) {
-        return res.status(404).json({ success: false, message: 'User not found' });
+        return res.status(200).json({ success: true, user: null });
       }
       res.status(200).json({
         success: true,
