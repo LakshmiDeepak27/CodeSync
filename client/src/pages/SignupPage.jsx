@@ -66,7 +66,11 @@ export const SignupPage = () => {
       const res = await register(form);
       const params = new URLSearchParams(location.search);
       const redirect = params.get('redirect');
-      navigate(redirect || '/dashboard');
+      if (res?.requiresVerification || !res?.token) {
+        navigate(`/verify-email?email=${encodeURIComponent(form.email.trim().toLowerCase())}${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ''}`);
+      } else {
+        navigate(redirect || '/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Unable to create account.');
     } finally {

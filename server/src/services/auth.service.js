@@ -34,16 +34,25 @@ export class AuthService {
     const existingEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     const passwordHash = await this.hashPassword(password);
 
+    const verificationCode = this.generateVerificationCode();
+    const verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
     if (existingEmail) {
-      // If user exists, update password and ensure verified for direct login
+      if (existingEmail.isVerified) {
+        const error = new Error('An account with this email address already exists. Please log in.');
+        error.status = 409;
+        throw error;
+      }
+
+      // If user exists but is NOT verified, update credentials, generate fresh code & send OTP
       const updatedUser = await prisma.user.update({
         where: { id: existingEmail.id },
         data: {
           name: name || existingEmail.name,
           passwordHash,
-          isVerified: true,
-          verificationCode: null,
-          verificationCodeExpiresAt: null
+          isVerified: false,
+          verificationCode,
+          verificationCodeExpiresAt
         },
         select: {
           id: true,
@@ -56,14 +65,22 @@ export class AuthService {
         }
       });
 
-      console.log(`[AuthService] Updated user: ${normalizedEmail}`);
-      const token = this.generateToken(updatedUser);
+      console.log(`[AuthService] Re-sending verification code for unverified account: ${normalizedEmail}`);
+
+      try {
+        await EmailService.sendVerificationEmail(normalizedEmail, verificationCode, updatedUser.name);
+      } catch (err) {
+        console.error('[AuthService] Failed to send verification email:', err.message);
+        const error = new Error('Failed to send verification email. Please check your email address and try again.');
+        error.status = 500;
+        throw error;
+      }
 
       return {
         success: true,
-        user: updatedUser,
-        token,
-        message: 'Signed in successfully!'
+        requiresVerification: true,
+        email: normalizedEmail,
+        message: 'A 6-digit verification code has been sent to your Gmail.'
       };
     }
 
@@ -91,9 +108,9 @@ export class AuthService {
         username: finalUsername,
         email: normalizedEmail,
         passwordHash,
-        isVerified: true,
-        verificationCode: null,
-        verificationCodeExpiresAt: null,
+        isVerified: false,
+        verificationCode,
+        verificationCodeExpiresAt,
         avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(finalUsername)}`
       },
       select: {
@@ -107,14 +124,22 @@ export class AuthService {
       }
     });
 
-    console.log(`[AuthService] Registered user: ${normalizedEmail}`);
-    const token = this.generateToken(user);
+    console.log(`[AuthService] Registered user awaiting email verification: ${normalizedEmail}`);
+
+    try {
+      await EmailService.sendVerificationEmail(normalizedEmail, verificationCode, user.name || finalUsername);
+    } catch (err) {
+      console.error('[AuthService] Failed to send verification email:', err.message);
+      const error = new Error('Account was created, but we could not deliver the verification email. Please verify your email or click Resend.');
+      error.status = 500;
+      throw error;
+    }
 
     return {
       success: true,
-      user,
-      token,
-      message: 'Account created successfully!'
+      requiresVerification: true,
+      email: normalizedEmail,
+      message: 'A 6-digit verification code has been sent to your Gmail.'
     };
   }
 
@@ -134,13 +159,27 @@ export class AuthService {
       throw error;
     }
 
-    // Auto-verify user if not already verified
+    // Require account verification if user is not verified
     if (!user.isVerified) {
+      const verificationCode = this.generateVerificationCode();
+      const verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
       await prisma.user.update({
         where: { id: user.id },
-        data: { isVerified: true }
+        data: { verificationCode, verificationCodeExpiresAt }
       });
-      user.isVerified = true;
+
+      try {
+        await EmailService.sendVerificationEmail(user.email, verificationCode, user.name);
+      } catch (e) {
+        console.error('[AuthService] Failed to send verification code on login:', e.message);
+      }
+
+      const error = new Error('Your account is not verified yet. We have sent a 6-digit verification code to your Gmail.');
+      error.status = 403;
+      error.requiresVerification = true;
+      error.email = user.email;
+      throw error;
     }
 
     const token = this.generateToken(user);
@@ -417,17 +456,20 @@ export class AuthService {
       }
     });
 
-    console.log(`[AuthService] Password reset code for ${user.email}: ${resetCode}`);
+    console.log(`[AuthService] Password reset code generated for ${user.email}: ${resetCode}`);
 
     try {
       await EmailService.sendPasswordResetEmail(user.email, resetCode, user.name);
     } catch (err) {
       console.error('[AuthService] Failed to send password reset email:', err.message);
+      const error = new Error('Failed to send password reset email. Please try again in a few moments.');
+      error.status = 500;
+      throw error;
     }
 
     return {
       success: true,
-      message: 'Password reset code has been sent to your email.',
+      message: 'A 6-digit password reset code has been sent to your Gmail.',
       email: normalizedEmail
     };
   }
@@ -444,19 +486,19 @@ export class AuthService {
     }
 
     if (!user.verificationCode || user.verificationCode.trim() !== cleanCode) {
-      const error = new Error('Invalid reset code.');
+      const error = new Error('Invalid verification code. Please check your email or request a new one.');
       error.status = 400;
       throw error;
     }
 
     if (user.verificationCodeExpiresAt && new Date() > new Date(user.verificationCodeExpiresAt)) {
-      const error = new Error('Reset code has expired. Please request a new one.');
+      const error = new Error('Reset code has expired. Please request a new code.');
       error.status = 400;
       throw error;
     }
 
     if (!newPassword || newPassword.length < 8) {
-      const error = new Error('Password must be at least 8 characters.');
+      const error = new Error('Password must be at least 8 characters long.');
       error.status = 400;
       throw error;
     }
@@ -466,11 +508,15 @@ export class AuthService {
       where: { id: user.id },
       data: {
         passwordHash,
+        isVerified: true,
         verificationCode: null,
         verificationCodeExpiresAt: null
       }
     });
 
-    return { success: true, message: 'Password has been reset successfully. You can now log in.' };
+    return {
+      success: true,
+      message: 'Password has been reset successfully. You can now log in with your new password.'
+    };
   }
 }
