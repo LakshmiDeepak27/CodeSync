@@ -17,8 +17,19 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const clientDistPath = path.resolve(__dirname, '../../client/dist');
+const candidateDistPaths = [
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(process.cwd(), 'client/dist'),
+  path.resolve(process.cwd(), '../client/dist'),
+  path.resolve(process.cwd(), 'dist'),
+  path.resolve(__dirname, '../../../client/dist')
+];
+const clientDistPath = candidateDistPaths.find((p) => fs.existsSync(p));
+if (clientDistPath) {
+  console.log(`[Server] Static frontend found at: ${clientDistPath}`);
+} else {
+  console.warn('[Server] WARNING: Frontend dist directory not found! Checked:', candidateDistPaths);
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -81,7 +92,7 @@ app.get('/health', (req, res) => {
 app.use('/api', apiRoutes);
 
 // In production, serve compiled Vite React SPA if present (allows unified 0-cost single-service deployment)
-if (fs.existsSync(clientDistPath)) {
+if (clientDistPath) {
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/socket.io') || req.path === '/health') {
