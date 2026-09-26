@@ -281,12 +281,18 @@ export class AuthService {
 
   static async handleGoogleUser({ googleId, email, name, avatarUrl }) {
     const normalizedEmail = (email || '').trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new Error('A valid email address is required from Google.');
+    }
+
+    const orConditions = [{ email: normalizedEmail }];
+    if (googleId) {
+      orConditions.push({ googleId });
+    }
+
     let user = await prisma.user.findFirst({
       where: {
-        OR: [
-          { googleId },
-          { email: normalizedEmail }
-        ]
+        OR: orConditions
       }
     });
 
@@ -302,7 +308,7 @@ export class AuthService {
       });
     } else {
       // Create fresh Google user (pre-verified by Google)
-      let baseUsername = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+      let baseUsername = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || 'user';
       let uniqueUsername = baseUsername;
       let counter = 1;
       while (await prisma.user.findUnique({ where: { username: uniqueUsername } })) {
@@ -315,7 +321,7 @@ export class AuthService {
           name: name || uniqueUsername,
           username: uniqueUsername,
           email: normalizedEmail,
-          googleId,
+          googleId: googleId || null,
           isVerified: true,
           avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(uniqueUsername)}`
         }

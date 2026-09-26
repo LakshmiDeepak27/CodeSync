@@ -25,6 +25,12 @@ export const LoginPage = () => {
   const urlError = new URLSearchParams(location.search).get('error') || '';
   const [error, setError] = useState(urlError);
 
+  React.useEffect(() => {
+    if (urlError) {
+      setError(urlError);
+    }
+  }, [urlError]);
+
   const submit = async (event) => {
     event.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -55,7 +61,8 @@ export const LoginPage = () => {
 
         <button
           onClick={() => {
-            window.location.href = authService.getGoogleAuthUrl();
+            const redirect = new URLSearchParams(location.search).get('redirect') || '';
+            window.location.href = authService.getGoogleAuthUrl(redirect);
           }}
           type="button"
           className="auth-google"

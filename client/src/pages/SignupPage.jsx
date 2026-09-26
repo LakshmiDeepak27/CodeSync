@@ -33,8 +33,15 @@ export const SignupPage = () => {
     password: '',
     confirmPassword: ''
   });
-  const [error, setError] = useState('');
+  const urlError = new URLSearchParams(location.search).get('error') || '';
+  const [error, setError] = useState(urlError);
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (urlError) {
+      setError(urlError);
+    }
+  }, [urlError]);
 
   const rules = rulesFor(form.password);
   const passed = rules.filter((rule) => rule.pass).length;
@@ -79,7 +86,8 @@ export const SignupPage = () => {
 
         <button
           onClick={() => {
-            window.location.href = authService.getGoogleAuthUrl();
+            const redirect = new URLSearchParams(location.search).get('redirect') || '';
+            window.location.href = authService.getGoogleAuthUrl(redirect);
           }}
           type="button"
           className="auth-google"

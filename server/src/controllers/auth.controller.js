@@ -143,14 +143,20 @@ export class AuthController {
   }
 
   static async googleAuth(req, res) {
+    if (!ENV.GOOGLE_CLIENT_ID || !ENV.GOOGLE_CLIENT_SECRET) {
+      return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent('Google OAuth is not configured on the server. Please check environment variables.')}`);
+    }
+
     // Generate Google OAuth URL with user's client ID
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const redirect = (req.query.redirect && req.query.redirect.startsWith('/')) ? req.query.redirect : '';
     const options = {
       redirect_uri: ENV.GOOGLE_CALLBACK_URL,
       client_id: ENV.GOOGLE_CLIENT_ID,
       access_type: 'offline',
       response_type: 'code',
       prompt: 'consent',
+      ...(redirect ? { state: redirect } : {}),
       scope: [
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/userinfo.email'
@@ -162,11 +168,15 @@ export class AuthController {
   }
 
   static async googleCallback(req, res) {
-    const clientOrigin = req.headers.referer ? new URL(req.headers.referer).origin : (req.headers.origin || ENV.CLIENT_URL);
     try {
-      const { code } = req.query;
+      const { code, state, error: oauthError, error_description } = req.query;
+
+      if (oauthError) {
+        return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent(error_description || oauthError)}`);
+      }
+
       if (!code) {
-        return res.redirect(`${clientOrigin}/login?error=Google+authentication+was+cancelled`);
+        return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent('Google authentication was cancelled or code was missing')}`);
       }
 
       // Exchange code with Google OAuth token endpoint
@@ -183,16 +193,27 @@ export class AuthController {
       });
 
       const tokenData = await tokenResponse.json();
-      if (!tokenData.access_token) {
+      if (!tokenResponse.ok || !tokenData.access_token) {
         console.error('Google OAuth token exchange error:', tokenData);
-        return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent(tokenData.error_description || 'Failed to authenticate with Google')}`);
+        return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent(tokenData.error_description || tokenData.error || 'Failed to authenticate with Google')}`);
       }
 
       // Fetch user profile from Google userinfo API
       const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` }
       });
+
+      if (!profileResponse.ok) {
+        const errorText = await profileResponse.text();
+        console.error('Google userinfo fetch failed:', errorText);
+        return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent('Failed to fetch user profile from Google')}`);
+      }
+
       const profile = await profileResponse.json();
+
+      if (!profile || !profile.email) {
+        return res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent('Could not retrieve email address from Google profile')}`);
+      }
 
       const { token } = await AuthService.handleGoogleUser({
         googleId: profile.id,
@@ -202,8 +223,13 @@ export class AuthController {
       });
 
       res.cookie('token', token, getCookieOptions(req));
-      // Redirect to dashboard with token param for cross-origin or local storage support
-      res.redirect(`${ENV.CLIENT_URL}/dashboard?token=${encodeURIComponent(token)}`);
+
+      const targetPath = (state && typeof state === 'string' && state.startsWith('/') && !state.startsWith('//'))
+        ? state
+        : '/dashboard';
+
+      // Redirect to destination with token param for cross-origin or local storage support
+      res.redirect(`${ENV.CLIENT_URL}${targetPath}?token=${encodeURIComponent(token)}`);
     } catch (error) {
       console.error('Google OAuth callback error:', error);
       res.redirect(`${ENV.CLIENT_URL}/login?error=${encodeURIComponent(error.message || 'Authentication failed')}`);

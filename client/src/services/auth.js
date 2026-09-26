@@ -8,6 +8,9 @@ const getAuthBaseUrl = () => {
     const cleanUrl = import.meta.env.VITE_SERVER_URL.replace(/\/+$/, '');
     return `${cleanUrl}/api`;
   }
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port === '5173') {
+    return 'http://localhost:5000/api';
+  }
   return '/api';
 };
 
@@ -57,7 +60,14 @@ export const authService = {
     return res.data;
   },
 
-  getGoogleAuthUrl() {
-    return `${getAuthBaseUrl()}/auth/google`;
+  getGoogleAuthUrl(redirect = '') {
+    const baseUrl = getAuthBaseUrl();
+    const cleanBase = baseUrl.replace(/\/+$/, '');
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+    const url = new URL(`${cleanBase}/auth/google`, cleanBase.startsWith('http') ? cleanBase : baseOrigin);
+    if (redirect) {
+      url.searchParams.set('redirect', redirect);
+    }
+    return url.toString();
   }
 };
