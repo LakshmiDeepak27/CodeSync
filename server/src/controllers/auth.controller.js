@@ -44,7 +44,8 @@ export class AuthController {
         success: true,
         message: result.message || 'Registered successfully.',
         token: result.token,
-        user: result.user
+        user: result.user,
+        devCode: result.devCode
       });
     } catch (error) {
       next(error);

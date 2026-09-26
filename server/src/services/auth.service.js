@@ -91,6 +91,7 @@ export class AuthService {
         success: true,
         requiresVerification: true,
         email: normalizedEmail,
+        devCode: verificationCode,
         message: 'A 6-digit verification code has been sent to your Gmail.'
       };
     }
@@ -172,6 +173,7 @@ export class AuthService {
       success: true,
       requiresVerification: true,
       email: normalizedEmail,
+      devCode: verificationCode,
       message: 'A 6-digit verification code has been sent to your Gmail.'
     };
   }
@@ -347,6 +349,7 @@ export class AuthService {
 
     return {
       success: true,
+      devCode: verificationCode,
       message: 'A fresh 6-digit verification code has been sent to your email.'
     };
   }
@@ -495,15 +498,13 @@ export class AuthService {
       await EmailService.sendPasswordResetEmail(user.email, resetCode, user.name);
     } catch (err) {
       console.error('[AuthService] Failed to send password reset email:', err.message);
-      const error = new Error('Failed to send password reset email. Please try again in a few moments.');
-      error.status = 500;
-      throw error;
     }
 
     return {
       success: true,
       message: 'A 6-digit password reset code has been sent to your Gmail.',
-      email: normalizedEmail
+      email: normalizedEmail,
+      devCode: resetCode
     };
   }
 

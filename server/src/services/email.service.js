@@ -23,9 +23,9 @@ class EmailServiceClass {
           user: emailUser,
           pass: emailPass
         },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000
+        connectionTimeout: 4000,
+        greetingTimeout: 4000,
+        socketTimeout: 5000
       });
     }
     return this.transporter;

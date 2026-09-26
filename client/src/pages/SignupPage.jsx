@@ -35,6 +35,7 @@ export const SignupPage = () => {
     confirmPassword: ''
   });
   const [otpCode, setOtpCode] = useState('');
+  const [devCode, setDevCode] = useState('');
   const urlError = new URLSearchParams(location.search).get('error') || '';
   const [error, setError] = useState(urlError);
   const [infoMessage, setInfoMessage] = useState('');
@@ -81,7 +82,10 @@ export const SignupPage = () => {
 
       // Transition to inline Step 2 OTP verification on the same page
       setStep(2);
-      setInfoMessage(res.message || `We sent a 6-digit confirmation code to ${form.email.trim().toLowerCase()}.`);
+      if (res?.devCode) {
+        setDevCode(res.devCode);
+      }
+      setInfoMessage(res?.message || `We sent a 6-digit confirmation code to ${form.email.trim().toLowerCase()}.`);
       setResendCooldown(60);
     } catch (err) {
       setError(err.message || 'Unable to create account.');
@@ -126,6 +130,9 @@ export const SignupPage = () => {
       setError('');
       setInfoMessage('');
       const res = await resendVerification(cleanEmail);
+      if (res?.devCode) {
+        setDevCode(res.devCode);
+      }
       setInfoMessage(res.message || 'A fresh verification code has been dispatched to your Gmail.');
       setResendCooldown(60);
     } catch (err) {
@@ -274,6 +281,31 @@ export const SignupPage = () => {
         ) : (
           /* STEP 2: Inline OTP Verification */
           <form onSubmit={handleVerifyOtp} className="space-y-4">
+            {devCode && (
+              <div className="p-3 bg-cyan-950/70 border border-cyan-500/40 rounded-lg text-xs text-cyan-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-semibold flex items-center gap-1.5 text-cyan-300">
+                    <KeyRound className="w-4 h-4 text-cyan-400" /> Cloud Verification OTP
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpCode(devCode);
+                    }}
+                    className="px-2 py-0.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded text-[11px] font-mono font-medium transition cursor-pointer"
+                  >
+                    Auto-fill Code &rarr;
+                  </button>
+                </div>
+                <p className="text-[11px] text-cyan-300/80 mb-2">
+                  (Render Free Tier blocks outbound SMTP mail ports 465/587). Your 6-digit verification code is:
+                </p>
+                <div className="font-mono text-center tracking-[0.3em] text-xl font-bold text-cyan-300 bg-black/40 py-1.5 rounded border border-cyan-500/30">
+                  {devCode}
+                </div>
+              </div>
+            )}
+
             <div className="p-3 bg-[#08202d] border border-cyan-100/15 rounded-lg">
               <span className="text-xs text-slate-300 block">
                 Please check your Gmail inbox (and Spam folder) for the 6-digit verification code sent to <strong className="text-white">{form.email}</strong>.
